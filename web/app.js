@@ -12,6 +12,9 @@ Vue.component("vault-unlock-modal", {
       this.password = "";
       this.$emit('close')
     }
+  },
+  mounted() {
+    this.$nextTick(() => this.$refs.passwordInput.focus())
   }
 });
 
