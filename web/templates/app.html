@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cloak app</title>
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+  <style>
+    .card {
+      box-shadow: 0 .25rem 1rem rgba(48,55,66,.15);
+    }
+    #app {
+      padding: 0;
+      min-height: 400px;
+    }
+    #vault-list {
+      box-shadow: none;
+      padding: 0;
+      transform: none;
+      border-radius: 0;
+    }
+    #vault-list .menu-item>a {
+      padding: .4rem;
+      border-left: 4px solid transparent;
+    }
+    #vault-list .menu-item + .menu-item {
+      margin-top: 0;
+    }
+    #vault-list .menu-item > a.active {
+      border-color: #5755d9;
+    }
+    .menu .menu-item > a {
+      border-radius: 0;
+    }
+    #list-panel {
+      position: relative;
+    }
+    #info-panel {
+      border-left: .05rem solid #dadee4;
+    }
+    #info-panel>div {
+      height: 100%;
+    }
+    #add-vault-button {
+      width: 100%;
+      border: none;
+      border-top: .05rem solid #dadee4;
+      border-radius: 0;
+      background-color: #f7f8f9;
+      color: unset;
+      position: absolute;
+      bottom: 0;
+    }
+    #add-vault-button .tile-title {
+      font-weight: normal;
+    }
+    #vault-info {
+      background-color: #f7f8f9;
+      padding: 1.4rem;
+    }
+    #vault-info .chip {
+      background-color: #8c8c8c;
+      position: absolute;
+      top: 0;
+      right: 0;
+      font-size: .6em;
+    }
+    #vault-info .chip.unlocked {
+      background-color: #5755d9;
+    }
+    #vault-info .tile-content {
+      position: relative;
+    }
+    .vault-operations {
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+<div class="container hero">
+  <div class="columns col-gapless">
+    <div class="column col-7 col-ml-auto col-mr-auto card">
+      <div class="columns col-gapless card-body" id="app">
+        <div class="column col-4" id="list-panel">
+          <div class="menu" id="vault-list">
+            <div class="menu-item" v-for="vault in vaults" v-on:click="selectVault(vault.id)">
+              <a href="javascript:void(0)" v-bind:class="{ active: vault.selected }">
+                <div class="tile tile-centered">
+                  <div class="tile-icon">
+                    <i class="ri-lock-unlock-fill ri-lg" v-if="vault.state === 'unlocked'"></i>
+                    <i class="ri-lock-fill ri-lg" v-else></i>
+                  </div>
+                  <div class="tile-content">
+                    <div class="tile-title h5">${ vault.name }</div>
+                    <small class="tile-subtitle text-gray">${ vault.path }</small>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+          <div class="btn btn-lg" id="add-vault-button">
+            <div class="tile tile-centered">
+              <div class="tile-content">
+                <div class="tile-title h6">➕ Add Vault</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="column col-8" id="info-panel">
+          <div class="empty" v-if="!selected">
+            <p class="empty-title h5">No vault selected</p>
+            <p class="empty-subtitle">Click on a vault on the left to show its details</p>
+          </div>
+          <div id="vault-info" v-else>
+            <div class="tile tile-centered">
+              <div class="tile-icon">
+                <i class="ri-lock-unlock-fill ri-lg" v-if="selected.state === 'unlocked'"></i>
+                <i class="ri-lock-fill ri-lg" v-else></i>
+              </div>
+              <div class="tile-content">
+                <div class="tile-title h5">${ selected.name }</div>
+                <small class="tile-subtitle text-gray">${ selected.path }</small>
+                <span class="chip text-uppercase text-bold text-light"
+                      v-bind:class="{ unlocked: selected.state === 'unlocked' }">${ selected.state }</span>
+              </div>
+            </div>
+            <div class="vault-operations text-center" v-if="selected.state === 'unlocked'">
+              <div class="text-center">
+                <button class="btn btn-primary btn-lg" @click="revealMountpoint(selected.id)">
+                  <i class="ri-folder-open-fill"></i> Reveal Drive
+                </button>
+              </div>
+              <div class="text-center mt-2">
+                <button class="btn btn-sm" @click="lockVault(selected.id)">
+                  <i class="ri-key-2-fill"></i> Lock
+                </button>
+              </div>
+            </div>
+            <div class="vault-operations text-center" v-else>
+              <button class="btn btn-primary btn-lg" @click="showUnlock = true">
+                <i class="ri-key-2-fill"></i> Unlock...
+              </button>
+            </div>
+          </div>
+        </div>
+        <vault-unlock-modal v-if="showUnlock"
+                            @close="showUnlock = false"
+                            v-on:unlock-vault="unlockVault"
+                            v-bind:vault="selected"></vault-unlock-modal>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/x-template" id="vault-unlock-modal-template">
+<div class="modal active">
+  <a href="javascript:void(0)" class="modal-overlay" aria-label="Close" @click="close"></a>
+  <div class="modal-container">
+    <div class="modal-header">
+      <a href="javascript:void(0)"
+         class="btn btn-clear float-right"
+         aria-label="Close"
+         @click="close"></a>
+      <div class="modal-title h5">${ vault.name }</div>
+    </div>
+    <div class="modal-body">
+      <div class="content">
+        <div class="form-group">
+          <label for="vault-password" class="form-label">Enter password for "${ vault.name }"</label>
+          <input type="password" class="form-input" id="vault-password" v-model="password">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary"
+              @click="$emit('unlock-vault', {id: vault.id, password: password})">Unlock</button>
+      <button class="btn" aria-label="Close" @click="close">Cancel</button>
+    </div>
+  </div>
+</div>
+</script>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

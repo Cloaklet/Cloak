@@ -1,0 +1,485 @@
+package main
+
+import (
+	"Cloak/models"
+	"context"
+	"database/sql"
+	"fmt"
+	"github.com/labstack/echo/v4"
+	template "html/template"
+	"io"
+	"io/ioutil"
+	"math/rand"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/user"
+	"strconv"
+	"strings"
+	"sync"
+)
+
+const (
+	ERR_CODE_OK                    = 0
+	ERR_MSG_OK                     = "ok"
+	ERR_CODE_LIST_FAILED           = 1
+	ERR_MSG_LIST_FAILED            = "Failed to list vaults"
+	ERR_CODE_MALFORMED_INPUT       = 2
+	ERR_MSG_MALFORMED_INPUT        = "Malformed input data"
+	ERR_CODE_UNKNOWN               = 3
+	ERR_MSG_UNKNOWN                = "Error: %v"
+	ERR_CODE_PATH_NOT_EXISTS       = 4
+	ERR_MSG_PATH_NOT_EXISTS        = "Given path does not exist"
+	ERR_CODE_UNSUPPORTED_OPERATION = 5
+	ERR_MSG_UNSUPPORTED_OPERATION  = "Unsupported operation"
+	ERR_CODE_VAULT_NOT_EXISTS      = 6
+	ERR_MSG_VAULT_NOT_EXISTS       = "Given vault ID does not exist"
+	ERR_CODE_ALREADY_UNLOCKED      = 7
+	ERR_MSG_ALREADY_UNLOCKED       = "This vault is already unlocked"
+	ERR_CODE_ALREADY_LOCKED        = 8
+	ERR_MSG_ALREADY_LOCKED         = "This vault is already locked"
+)
+
+type ApiServer struct {
+	repo        *models.VaultRepo   // database repository
+	echo        *echo.Echo          // the actual HTTP server
+	cmd         string              // `gocryptfs` binary path
+	processes   map[int64]*exec.Cmd // vaultID: process
+	mountPoints map[int64]string    // vaultID: mountPoint
+	lock        sync.Mutex          // lock on `processes` and `mountPoints`
+}
+
+// Template is a simple template renderer for labstack/echo
+type Template struct {
+	template *template.Template
+}
+
+func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
+	return t.template.ExecuteTemplate(w, name, data)
+}
+
+// Start starts the server
+func (s *ApiServer) Start(address string) error {
+	return s.echo.Start(address)
+}
+
+// Stop stops the server
+// All vaults will be locked before the server stops.
+func (s *ApiServer) Stop() error {
+	return s.echo.Shutdown(context.Background())
+}
+
+// NewApiServer creates a new ApiServer instance
+// - cmdPath specifies the location of `gocryptfs` binary
+// - repo passes in the vault repository to persist vault list data
+func NewApiServer(cmdPath string, repo *models.VaultRepo) *ApiServer {
+	server := ApiServer{
+		repo:        repo,
+		echo:        echo.New(),
+		cmd:         cmdPath,
+		processes:   map[int64]*exec.Cmd{},
+		mountPoints: map[int64]string{},
+	}
+	server.echo.Renderer = &Template{
+		template: template.Must(template.ParseGlob("web/templates/*.html")),
+	}
+	server.echo.Static("/static", "web") // FIXME
+	server.echo.GET("/", func(c echo.Context) error {
+		// Render app page
+		return c.Render(200, "app.html", echo.Map{})
+	})
+	/**
+	APIs are located at /api:
+	- GET /vaults: get a list of all known vaults
+	- POST /vaults: create or add a vault
+	  - op=create: create a new vault
+	  - op=add: add an existing vault to Cloak app
+	- POST /vault/N: operate on a vault
+	  - op=update: update vault information
+	  - op=unlock: unlock a vault, pass password with `pw`
+	  - op=lock: lock a vault
+	- DELETE /vault/N: delete a vault from Cloak. Files are reserved on disk.
+	*/
+	apis := server.echo.Group("/api")
+	{
+		apis.GET("/vaults", server.ListVaults)
+		apis.DELETE("/vault/:id", server.RemoveVault)
+		apis.POST("/vaults", server.AddOrCreateVault)
+		apis.POST("/vault/:id", server.OperateOnVault)
+		apis.POST("/subpaths", server.ListSubPaths)
+	}
+	return &server
+}
+
+// VaultInfo represents a single vault along with its current state
+type VaultInfo struct {
+	models.Vault
+	State string `json:"state"` // Legal values: locked/unlocked
+}
+
+// ListVaults returns a list of all known vaults
+func (s *ApiServer) ListVaults(c echo.Context) error {
+	if vaults, err := s.repo.List(nil); err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"code": ERR_CODE_LIST_FAILED,
+			"msg":  ERR_MSG_LIST_FAILED,
+		})
+	} else {
+		vaultList := make([]VaultInfo, len(vaults))
+		for i, v := range vaults {
+			vaultList[i] = VaultInfo{Vault: v, State: "locked"}
+			// Detect vault state
+			if _, ok := s.mountPoints[v.ID]; ok {
+				vaultList[i].State = "unlocked"
+			}
+		}
+		return c.JSON(http.StatusOK, echo.Map{
+			"code":  ERR_CODE_OK,
+			"msg":   ERR_MSG_OK,
+			"items": vaultList,
+		})
+	}
+}
+
+// OperateOnVault performs operations on a single vault, including lock/unlock.
+// - `op` identifies the operation to perform
+func (s *ApiServer) OperateOnVault(c echo.Context) error {
+	// Pre-check on ID
+	vaultId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"code": ERR_CODE_MALFORMED_INPUT,
+			"msg":  ERR_MSG_MALFORMED_INPUT,
+		})
+	}
+
+	var form struct {
+		Op       string `json:"op"`       // lock/unlock
+		Password string `json:"password"` // for `lock` op only
+	}
+	if err := c.Bind(&form); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"code": ERR_CODE_MALFORMED_INPUT,
+			"msg":  ERR_MSG_MALFORMED_INPUT,
+		})
+	}
+
+	if form.Op == "unlock" {
+		// Check current state
+		if _, ok := s.mountPoints[vaultId]; ok {
+			return c.JSON(http.StatusOK, echo.Map{
+				"code":  ERR_CODE_ALREADY_UNLOCKED,
+				"msg":   ERR_MSG_ALREADY_UNLOCKED,
+				"state": "unlocked",
+			})
+		}
+
+		// Lock internal maps
+		s.lock.Lock()
+		defer s.lock.Unlock()
+		// Locate vault in repository
+		vault, err := s.repo.Get(vaultId, nil)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return c.JSON(http.StatusOK, echo.Map{
+					"code": ERR_CODE_VAULT_NOT_EXISTS,
+					"msg":  ERR_MSG_VAULT_NOT_EXISTS,
+				})
+			}
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
+		// Locate a mountpoint for this vault
+		if vault.MountPoint == nil || strings.TrimSpace(*vault.MountPoint) == "" {
+			randomMountPoint := strconv.FormatInt(int64(rand.Int31()), 16)
+			vault.MountPoint = &randomMountPoint
+		}
+		// Start a gocryptfs process to unlock this vault
+		args := []string{"-fg", "--", vault.Path, *vault.MountPoint}
+		s.processes[vaultId] = exec.Command(s.cmd, args...)
+		s.mountPoints[vaultId] = *vault.MountPoint
+
+		// Password is piped through STDIN
+		stdIn, err := s.processes[vaultId].StdinPipe()
+		if err != nil {
+			logger.Error().Err(err).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", *vault.MountPoint).
+				Msg("Failed to create STDIN pipe")
+			defer delete(s.processes, vaultId)
+			defer delete(s.mountPoints, vaultId)
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
+
+		go func() {
+			defer stdIn.Close()
+			if _, err := io.WriteString(stdIn, form.Password); err != nil {
+				logger.Error().Err(err).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", *vault.MountPoint).
+					Msg("Failed to pipe vault password to gocryptfs")
+			}
+		}()
+		s.processes[vaultId].Start()
+
+		// Need to wait for this process to exit, otherwise it becomes zombie after exiting.
+		go func() {
+			if err := s.processes[vaultId].Wait(); err != nil {
+				s.lock.Lock()
+				defer s.lock.Unlock()
+				defer delete(s.processes, vaultId)
+				defer delete(s.mountPoints, vaultId)
+
+				rc := s.processes[vaultId].ProcessState.ExitCode()
+				switch rc {
+				case 10: // Mountpoint not empty
+					logger.Error().Err(err).
+						Int("RC", rc).
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", *vault.MountPoint).
+						Msg("Mountpoint not empty")
+					// FIXME How do we pass the error data back to the UI?
+				case 12: // Incorrect password
+					logger.Error().Err(err).
+						Int("RC", rc).
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", *vault.MountPoint).
+						Msg("Vault password incorrect")
+				// FIXME
+				case 23: // gocryptfs.conf IO error
+					logger.Error().Err(err).
+						Int("RC", rc).
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", *vault.MountPoint).
+						Msg("Gocryptfs cannot open gocryptfs.conf")
+				// FIXME
+				case 15: // gocryptfs interrupted by SIGINT, a.k.a. we locked this vault
+					logger.Info().
+						Int("RC", rc).
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", *vault.MountPoint).
+						Msg("Vault locked")
+					break
+				default:
+					logger.Error().Err(err).
+						Int("RC", rc).
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", *vault.MountPoint).
+						Msg("Gocryptfs exited unexpectedly")
+				}
+			}
+		}()
+		// Respond
+		return c.JSON(http.StatusOK, echo.Map{
+			"code":  ERR_CODE_OK,
+			"msg":   ERR_MSG_OK,
+			"state": "unlocked",
+		})
+	} else if form.Op == "lock" {
+		// Check current state
+		if _, ok := s.mountPoints[vaultId]; !ok {
+			return c.JSON(http.StatusOK, echo.Map{
+				"code":  ERR_CODE_ALREADY_LOCKED,
+				"msg":   ERR_MSG_ALREADY_LOCKED,
+				"state": "locked",
+			})
+		}
+
+		// Lock internal maps
+		s.lock.Lock()
+		defer s.lock.Unlock()
+		// Stop corresponding gocryptfs process to lock this vault
+		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
+		// We have a pairing gorountine to wait for gocryptfs process to exit and do the cleanup,
+		// so no need to cleaning `s.processes` and `s.mountPoints` here.
+		// Respond
+		return c.JSON(http.StatusOK, echo.Map{
+			"code":  ERR_CODE_OK,
+			"msg":   ERR_MSG_OK,
+			"state": "locked",
+		})
+	} else {
+		// Currently not supported
+		return c.JSON(http.StatusOK, echo.Map{
+			"code": ERR_CODE_UNSUPPORTED_OPERATION,
+			"msg":  ERR_MSG_UNSUPPORTED_OPERATION,
+		})
+	}
+}
+
+// RemoveVault removes vault specified by ID from database repository,
+// the corresponding directory remains on the disk.
+func (s *ApiServer) RemoveVault(c echo.Context) error {
+	// Pre-check on ID
+	vaultId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"code": ERR_CODE_MALFORMED_INPUT,
+			"msg":  ERR_MSG_MALFORMED_INPUT,
+		})
+	}
+
+	_ = s.repo.WithTransaction(func(tx models.Transactional) error {
+		vault, err := s.repo.Get(vaultId, tx)
+		if err != nil {
+			// Vault ID not found
+			if err == sql.ErrNoRows {
+				return c.JSON(http.StatusOK, echo.Map{
+					"code": ERR_CODE_VAULT_NOT_EXISTS,
+					"msg":  ERR_MSG_VAULT_NOT_EXISTS,
+				})
+			}
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
+		if err = s.repo.Delete(&vault, tx); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		} else {
+			// Deleted
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_OK,
+				"msg":  ERR_MSG_OK,
+			})
+		}
+	})
+	return nil
+}
+
+// TODO
+//func (s *ApiServer) RevealPath(c echo.Context) error       {}
+
+// AddOrCreateVault adds an existing gocryptfs vault to the repository,
+// Or it creates a new vault at specified location (not currently supported).
+func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
+	var form struct {
+		Op   string `json:"op"` // add/create
+		Path string `json:"path"`
+	}
+	if err := c.Bind(&form); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"code": ERR_CODE_MALFORMED_INPUT,
+			"msg":  ERR_MSG_MALFORMED_INPUT,
+		})
+	}
+
+	// Check path existence
+	if pathInfo, err := os.Stat(form.Path); err != nil || !pathInfo.IsDir() {
+		return c.JSON(http.StatusOK, echo.Map{
+			"code": ERR_CODE_PATH_NOT_EXISTS,
+			"msg":  ERR_MSG_PATH_NOT_EXISTS,
+		})
+	}
+
+	if form.Op == "add" {
+		_ = s.repo.WithTransaction(func(tx models.Transactional) error {
+			vault, err := s.repo.Create(echo.Map{"path": form.Path}, tx)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, echo.Map{
+					"code": ERR_CODE_UNKNOWN,
+					"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+				})
+			}
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_OK,
+				"msg":  ERR_MSG_OK,
+				"item": VaultInfo{
+					Vault: vault,
+					State: "locked",
+				},
+			})
+		})
+		return nil
+	} else {
+		// Currently not supported
+		return c.JSON(http.StatusOK, echo.Map{
+			"code": ERR_CODE_UNSUPPORTED_OPERATION,
+			"msg":  ERR_MSG_UNSUPPORTED_OPERATION,
+		})
+	}
+}
+
+// ListSubPaths lists items in given path.
+// - `pwd` identifies the path to use, the special value `$HOME` translates to home directory of current user.
+func (s *ApiServer) ListSubPaths(c echo.Context) error {
+	var form struct {
+		Pwd string `json:"pwd"`
+	}
+	if err := c.Bind(&form); err != nil {
+		return c.JSON(http.StatusBadRequest, echo.Map{
+			"code": ERR_CODE_MALFORMED_INPUT,
+			"msg":  ERR_MSG_MALFORMED_INPUT,
+		})
+	}
+
+	// Locate user home directory
+	if form.Pwd == `$HOME` {
+		currentUser, err := user.Current()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
+		form.Pwd = currentUser.HomeDir
+	}
+
+	// List items
+	items, err := ioutil.ReadDir(form.Pwd)
+	if err != nil {
+		if err == os.ErrNotExist {
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_PATH_NOT_EXISTS,
+				"msg":  ERR_MSG_PATH_NOT_EXISTS,
+			})
+		}
+		return c.JSON(http.StatusInternalServerError, echo.Map{
+			"code": ERR_CODE_UNKNOWN,
+			"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+		})
+	}
+
+	type Item struct {
+		Name string `json:"name"`
+		Type string `json:"string"` // file/directory
+	}
+	subPathItems := make([]Item, 0, len(items))
+	for _, item := range items {
+		var subItem Item
+		subItem.Name = item.Name()
+		// Skip hidden items
+		if subItem.Name[0] == '.' {
+			continue
+		}
+		if item.IsDir() {
+			subItem.Type = "directory"
+		} else {
+			subItem.Type = "file"
+		}
+		subPathItems = append(subPathItems, subItem)
+	}
+
+	// Respond
+	return c.JSON(http.StatusOK, echo.Map{
+		"code":  ERR_CODE_OK,
+		"msg":   ERR_MSG_OK,
+		"pwd":   form.Pwd,
+		"items": subPathItems,
+	})
+}
+
+//func (s *ApiServer) CreateVault(c echo.Context) error {}
