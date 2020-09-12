@@ -172,8 +172,13 @@ new Vue({
       })
     },
     revealMountpoint(vaultId) {
-      // FIXME
-      console.log(`TBD: revealing mountpoint for ${vaultId}`)
+      axios.post(`/api/vault/${vaultId}`, {
+        op: 'reveal',
+      }).then(resp => {
+        if (resp.data.code !== 0) {
+          return alert(JSON.stringify(resp)) // FIXME
+        }
+      })
     }
   },
   mounted () {

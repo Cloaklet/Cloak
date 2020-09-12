@@ -101,6 +101,7 @@ func NewApiServer(cmdPath string, repo *models.VaultRepo) *ApiServer {
 	  - op=update: update vault information
 	  - op=unlock: unlock a vault, pass password with `pw`
 	  - op=lock: lock a vault
+	  - op=reveal: reveal mountpoint in file manager, only available if vault is unlocked
 	- DELETE /vault/N: delete a vault from Cloak. Files are reserved on disk.
 	*/
 	apis := server.echo.Group("/api")
@@ -311,6 +312,30 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			"msg":   ERR_MSG_OK,
 			"state": "locked",
 		})
+	} else if form.Op == "reveal" {
+		var mountPoint string
+		var ok bool
+		// Check current state
+		if mountPoint, ok = s.mountPoints[vaultId]; !ok {
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_ALREADY_LOCKED,
+				"msg":  ERR_MSG_ALREADY_LOCKED,
+			})
+		}
+
+		// Check mountpoint path existence
+		if pathInfo, err := os.Stat(mountPoint); err != nil || !pathInfo.IsDir() {
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_PATH_NOT_EXISTS,
+				"msg":  ERR_MSG_PATH_NOT_EXISTS,
+			})
+		}
+
+		RevealInFileManager(mountPoint)
+		return c.JSON(http.StatusOK, echo.Map{
+			"code": ERR_CODE_OK,
+			"msg":  ERR_MSG_OK,
+		})
 	} else {
 		// Currently not supported
 		return c.JSON(http.StatusOK, echo.Map{
@@ -376,9 +401,6 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 	})
 	return nil
 }
-
-// TODO
-//func (s *ApiServer) RevealPath(c echo.Context) error       {}
 
 // AddOrCreateVault adds an existing gocryptfs vault to the repository,
 // Or it creates a new vault at specified location (not currently supported).
