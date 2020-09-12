@@ -497,7 +497,6 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 				logger.Warn().Err(err).
 					Str("pwd", form.Pwd).
 					Str("fileName", subItem.Name).
-					Bool("xattr.ENOATTR.Is(err)", xattr.ENOATTR.Is(err)).
 					Msg("Failed to get extended attributes")
 				continue
 			}
