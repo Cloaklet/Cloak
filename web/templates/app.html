@@ -70,6 +70,17 @@
     #vault-info .chip.unlocked {
       background-color: #5755d9;
     }
+    #vault-state-icon {
+      background-color: #5755d9;
+      color: white;
+      border-radius: 100%;
+      padding: .4rem;
+      width: 40px;
+      height: 40px;
+    }
+    #vault-state-icon [class^=ri-] {
+      vertical-align: sub;
+    }
     #vault-info .tile-content {
       position: relative;
     }
@@ -115,7 +126,7 @@
           </div>
           <div id="vault-info" v-else>
             <div class="tile tile-centered">
-              <div class="tile-icon">
+              <div class="tile-icon text-center" id="vault-state-icon">
                 <i class="ri-lock-unlock-fill ri-lg" v-if="selected.state === 'unlocked'"></i>
                 <i class="ri-lock-fill ri-lg" v-else></i>
               </div>
