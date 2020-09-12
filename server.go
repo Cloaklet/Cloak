@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -490,29 +491,31 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 		}
 
 		// Skip items that aren't visible in Finder app
-		xattrs, err := xattr.Get(filepath.Join(form.Pwd, item.Name()), "com.apple.FinderInfo")
-		if err != nil {
-			// No attribute is ok, other errors need to be logged
-			if errno, ok := err.(*xattr.Error); !ok || errno.Err != xattr.ENOATTR {
-				logger.Warn().Err(err).
+		if runtime.GOOS == "darwin" {
+			xattrs, err := xattr.Get(filepath.Join(form.Pwd, item.Name()), "com.apple.FinderInfo")
+			if err != nil {
+				// No attribute is ok, other errors need to be logged
+				if errno, ok := err.(*xattr.Error); !ok || errno.Err != xattr.ENOATTR {
+					logger.Warn().Err(err).
+						Str("pwd", form.Pwd).
+						Str("fileName", subItem.Name).
+						Msg("Failed to get extended attributes")
+					continue
+				}
+			}
+			// I have no idea how to match this piece of data, so this is based on some samples I observed.
+			// Some references:
+			// https://discussions.apple.com/thread/5846108
+			// http://dubeiko.com/development/FileSystems/HFSPLUS/tn1150.html#FinderInfo
+			// https://apple.stackexchange.com/a/174571
+			if len(xattrs) == 32 && xattrs[8] > 40 {
+				logger.Debug().
+					Bytes("com.apple.FinderInfo", xattrs).
 					Str("pwd", form.Pwd).
 					Str("fileName", subItem.Name).
-					Msg("Failed to get extended attributes")
+					Msg("Item skipped")
 				continue
 			}
-		}
-		// I have no idea how to match this piece of data, so this is based on some samples I observed.
-		// Some references:
-		// https://discussions.apple.com/thread/5846108
-		// http://dubeiko.com/development/FileSystems/HFSPLUS/tn1150.html#FinderInfo
-		// https://apple.stackexchange.com/a/174571
-		if len(xattrs) == 32 && xattrs[8] > 40 {
-			logger.Debug().
-				Bytes("com.apple.FinderInfo", xattrs).
-				Str("pwd", form.Pwd).
-				Str("fileName", subItem.Name).
-				Msg("Item skipped")
-			continue
 		}
 
 		if item.IsDir() {
