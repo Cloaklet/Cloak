@@ -11,6 +11,9 @@ Vue.component("vault-unlock-modal", {
     close() {
       this.password = "";
       this.$emit('close')
+    },
+    requestUnlockVault() {
+      this.$emit('unlock-vault', {id: this.vault.id, password: this.password})
     }
   },
   mounted() {
@@ -47,7 +50,7 @@ new Vue({
         }
       }
     },
-    unlockVault(info) {
+    unlockVault(info) { // info = {id, password}
       this.unlocking = true;
       axios.post(`http://127.0.0.1:9763/api/vault/${info.id}`, {
         op: 'unlock',

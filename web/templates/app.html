@@ -85,7 +85,7 @@
       <div class="columns col-gapless card-body" id="app">
         <div class="column col-4" id="list-panel">
           <div class="menu" id="vault-list">
-            <div class="menu-item" v-for="vault in vaults" v-on:click="selectVault(vault.id)">
+            <div class="menu-item" v-for="vault in vaults" @click="selectVault(vault.id)">
               <a href="javascript:void(0)" v-bind:class="{ active: vault.selected }">
                 <div class="tile tile-centered">
                   <div class="tile-icon">
@@ -147,14 +147,14 @@
         </div>
         <vault-unlock-modal v-if="showUnlock"
                             @close="showUnlock = false"
-                            v-on:unlock-vault="unlockVault"
+                            @unlock-vault="unlockVault"
                             v-bind:vault="selected"></vault-unlock-modal>
       </div>
     </div>
   </div>
 </div>
 <script type="text/x-template" id="vault-unlock-modal-template">
-<div class="modal active">
+<div class="modal active" @keydown.esc="close">
   <a href="javascript:void(0)" class="modal-overlay" aria-label="Close" @click="close"></a>
   <div class="modal-container">
     <div class="modal-header">
@@ -168,13 +168,18 @@
       <div class="content">
         <div class="form-group">
           <label for="vault-password" class="form-label">Enter password for "${ vault.name }"</label>
-          <input type="password" class="form-input" id="vault-password" ref="passwordInput" v-model="password">
+          <input type="password"
+                 class="form-input"
+                 id="vault-password"
+                 ref="passwordInput"
+                 v-model="password"
+                 @keydown.enter="requestUnlockVault">
         </div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary"
-              @click="$emit('unlock-vault', {id: vault.id, password: password})">Unlock</button>
+              @click="requestUnlockVault">Unlock</button>
       <button class="btn" aria-label="Close" @click="close">Cancel</button>
     </div>
   </div>
