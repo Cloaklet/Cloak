@@ -200,7 +200,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary"
-              v-bind:disabled="password.length"
+              v-bind:disabled="!password.length"
               @click="requestUnlockVault">Unlock</button>
       <button class="btn" aria-label="Close" @click="close">Cancel</button>
     </div>
