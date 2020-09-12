@@ -12,12 +12,14 @@
       box-shadow: 0 .25rem 1rem rgba(48,55,66,.15);
     }
     #app {
-      padding: 0;
-      min-height: 400px;
+      min-height: 500px;
+      border-radius: 0;
+    }
+    #app header {
+      padding: .7rem;
     }
     #vault-list {
       box-shadow: none;
-      padding: 0;
       transform: none;
       border-radius: 0;
     }
@@ -25,17 +27,11 @@
       padding: .4rem;
       border-left: 4px solid transparent;
     }
-    #vault-list .menu-item + .menu-item {
-      margin-top: 0;
-    }
     #vault-list .menu-item > a.active {
       border-color: #5755d9;
     }
     .menu .menu-item > a {
       border-radius: 0;
-    }
-    #list-panel {
-      position: relative;
     }
     #info-panel {
       border-left: .05rem solid #dadee4;
@@ -48,41 +44,26 @@
       border: none;
       border-top: .05rem solid #dadee4;
       border-radius: 0;
-      background-color: #f7f8f9;
       color: unset;
       position: absolute;
       bottom: 0;
     }
-    #add-vault-button .tile-title {
-      font-weight: normal;
-    }
     #vault-info {
-      background-color: #f7f8f9;
       padding: 1.4rem;
     }
     #vault-info .chip {
       background-color: #8c8c8c;
-      position: absolute;
       top: 0;
       right: 0;
       font-size: .6em;
     }
-    #vault-info .chip.unlocked {
-      background-color: #5755d9;
-    }
     #vault-state-icon {
-      background-color: #5755d9;
-      color: white;
-      border-radius: 100%;
       padding: .4rem;
       width: 40px;
       height: 40px;
     }
     #vault-state-icon [class^=ri-] {
       vertical-align: sub;
-    }
-    #vault-info .tile-content {
-      position: relative;
     }
     .vault-operations {
       margin-top: 3rem;
@@ -92,11 +73,18 @@
 <body>
 <div class="container hero">
   <div class="columns col-gapless">
-    <div class="column col-7 col-ml-auto col-mr-auto card">
-      <div class="columns col-gapless card-body" id="app">
-        <div class="column col-4" id="list-panel">
-          <div class="menu" id="vault-list">
-            <div class="menu-item" v-for="vault in vaults" @click="selectVault(vault.id)">
+    <div class="column col-7 col-ml-auto col-mr-auto card" id="app">
+      <div class="card-header p-0">
+        <header class="navbar bg-primary text-light">
+          <section class="navbar-section">
+            <a class="navbar-brand text-bold text-light text-uppercase">Cloak</a>
+          </section>
+        </header>
+      </div>
+      <div class="columns col-gapless card-body p-0">
+        <div class="column col-4 p-relative">
+          <div class="menu p-0" id="vault-list">
+            <div class="menu-item mt-0" v-for="vault in vaults" @click="selectVault(vault.id)">
               <a href="javascript:void(0)" v-bind:class="{ active: vault.selected }">
                 <div class="tile tile-centered">
                   <div class="tile-icon">
@@ -111,10 +99,10 @@
               </a>
             </div>
           </div>
-          <div class="btn btn-lg" id="add-vault-button">
+          <div class="btn btn-lg bg-gray" id="add-vault-button">
             <div class="tile tile-centered">
               <div class="tile-content">
-                <div class="tile-title h6">➕ Add Vault</div>
+                <div class="tile-title h6 text-normal">➕ Add Vault</div>
               </div>
             </div>
           </div>
@@ -124,17 +112,17 @@
             <p class="empty-title h5">No vault selected</p>
             <p class="empty-subtitle">Click on a vault on the left to show its details</p>
           </div>
-          <div id="vault-info" v-else>
+          <div class="bg-gray" id="vault-info" v-else>
             <div class="tile tile-centered">
-              <div class="tile-icon text-center" id="vault-state-icon">
+              <div class="tile-icon text-center text-light bg-primary s-circle" id="vault-state-icon">
                 <i class="ri-lock-unlock-fill ri-lg" v-if="selected.state === 'unlocked'"></i>
                 <i class="ri-lock-fill ri-lg" v-else></i>
               </div>
-              <div class="tile-content">
+              <div class="tile-content p-relative">
                 <div class="tile-title h5">${ selected.name }</div>
                 <small class="tile-subtitle text-gray">${ selected.path }</small>
-                <span class="chip text-uppercase text-bold text-light"
-                      v-bind:class="{ unlocked: selected.state === 'unlocked' }">${ selected.state }</span>
+                <span class="chip text-uppercase text-bold text-light p-absolute"
+                      v-bind:class="{ 'bg-primary': selected.state === 'unlocked' }">${ selected.state }</span>
               </div>
             </div>
             <div class="vault-operations text-center" v-if="selected.state === 'unlocked'">
