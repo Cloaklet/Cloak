@@ -80,6 +80,7 @@
     }
     #file-selection-modal .modal-body {
       border: .05rem solid #dadee4;
+      height: 450px;
     }
     #current-path {
       max-width: 75%;
@@ -167,7 +168,8 @@
                             @unlock-vault="unlockVault"
                             v-bind:vault="selected"></vault-unlock-modal>
         <file-selection-modal v-if="showFileSelection"
-                              @close="showFileSelection = false"></file-selection-modal>
+                              @close="showFileSelection = false"
+                              @add-vault="addVault"></file-selection-modal>
       </div>
     </div>
   </div>
@@ -234,7 +236,7 @@
               <a href="javascript:void(0)" v-bind:class="{ active: selected === item }">
                 <div class="tile tile-centered">
                   <div class="tile-icon">
-                    <i class="ri-file-3-line" v-if="item.type === 'file'"></i>
+                    <i class="ri-file-shield-2-line" v-if="item.type === 'file'"></i>
                     <i class="ri-folder-5-line" v-else></i>
                   </div>
                   <div class="tile-content">

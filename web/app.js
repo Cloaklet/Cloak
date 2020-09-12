@@ -29,6 +29,7 @@ Vue.component('file-selection-modal', {
       pwd: "",
       items: [],
       selected: null,
+      sep: "",  // path separator
     }
   },
   methods: {
@@ -41,6 +42,7 @@ Vue.component('file-selection-modal', {
         }
         this.pwd = resp.data.pwd;
         this.items = resp.data.items;
+        this.sep = resp.data.sep;
       }).catch(err => {
         console.error(err)
         // FIXME
@@ -48,16 +50,21 @@ Vue.component('file-selection-modal', {
     },
     selectItem(item) {
       if (item.type === 'directory') {
-        return this.listSubPaths(`${this.pwd}/${item.name}`)
+        this.selected = null;
+        return this.listSubPaths(`${this.pwd}${this.sep}${item.name}`)
       }
-      // FIXME Only allow selecting gocryptfs.conf
-      this.selected = item
+      // Only allow selecting gocryptfs.conf
+      if (item.name === 'gocryptfs.conf') {
+        this.selected = item
+      }
     },
     selectParentPath() {
-      this.listSubPaths(`${this.pwd}/..`)
+      this.selected = null;
+      this.listSubPaths(`${this.pwd}${this.sep}..`)
     },
     requestAddVault() {
-      console.info(`TBD: request adding vault: ${this.selected}`)
+      this.$emit('add-vault', `${this.pwd}`);
+      this.$emit('close')
     },
     close() {
       this.$emit('close')
@@ -82,7 +89,7 @@ new Vue({
   },
   computed: {
     selected: function () {
-      for (const v of this.vaults) {
+      for (let v of this.vaults) {
         if (v.selected) {
           return v
         }
@@ -100,6 +107,26 @@ new Vue({
           v.selected = false
         }
       }
+    },
+    addVault(vaultPath) {
+      axios.post(`/api/vaults`, {
+        op: 'add',
+        path: vaultPath,
+      }).then(resp => {
+        if (resp.data.code !== 0) {
+          return alert(JSON.stringify(resp)) // FIXME
+        }
+        // TODO
+        let v = resp.data.item;
+        this.vaults.push({
+          id: v.id,
+          name: v.path.split('/').pop(),
+          path: v.path,
+          mountpoint: v.mountpoint,
+          state: v.state,
+          selected: false,
+        })
+      })
     },
     removeVault(vaultId) {
       this.removing = true;
