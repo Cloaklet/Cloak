@@ -329,6 +329,20 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 		})
 	}
 
+	// Lock internal maps
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	// Lock vault if necessary
+	// Stop corresponding gocryptfs process to lock this vault
+	if _, ok := s.mountPoints[vaultId]; ok {
+		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
+	}
+
 	_ = s.repo.WithTransaction(func(tx models.Transactional) error {
 		vault, err := s.repo.Get(vaultId, tx)
 		if err != nil {
