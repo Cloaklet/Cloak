@@ -469,7 +469,7 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 
 	type Item struct {
 		Name string `json:"name"`
-		Type string `json:"string"` // file/directory
+		Type string `json:"type"` // file/directory
 	}
 	subPathItems := make([]Item, 0, len(items))
 	for _, item := range items {
