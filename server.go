@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -69,7 +70,32 @@ func (s *ApiServer) Start(address string) error {
 // Stop stops the server
 // All vaults will be locked before the server stops.
 func (s *ApiServer) Stop() error {
-	return s.echo.Shutdown(context.Background())
+	logger.Debug().Msg("Requestd to stop API server")
+
+	// Lock internal maps
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// Lock all unlocked vaults
+	for vaultId, mountPoint := range s.mountPoints {
+		logger.Debug().
+			Int64("vaultId", vaultId).
+			Str("mountPoint", mountPoint).
+			Msg("Locking vault")
+
+		// Stop corresponding gocryptfs process to lock this vault
+		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
+			logger.Error().Err(err).
+				Int64("vaultId", vaultId).
+				Str("mountPoint", mountPoint).
+				Msg("Failed to stop gocryptfs process with SIGINT")
+		}
+	}
+
+	// Shutdown the server
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+	defer cancel()
+	return s.echo.Shutdown(ctx)
 }
 
 // NewApiServer creates a new ApiServer instance
