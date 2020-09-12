@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/xattr"
-	template "html/template"
+	"html/template"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -197,7 +197,13 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		}
 		// Locate a mountpoint for this vault
 		if vault.MountPoint == nil || strings.TrimSpace(*vault.MountPoint) == "" {
-			randomMountPoint := strconv.FormatInt(int64(rand.Int31()), 16)
+			var mountPointBase string
+			if runtime.GOOS == "darwin" {
+				mountPointBase = "/Volumes"
+			} else {
+				mountPointBase = os.TempDir()
+			}
+			randomMountPoint := filepath.Join(mountPointBase, strconv.FormatInt(int64(rand.Int31()), 16))
 			vault.MountPoint = &randomMountPoint
 		}
 		// Start a gocryptfs process to unlock this vault
