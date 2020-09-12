@@ -521,6 +521,10 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 		if item.IsDir() {
 			subItem.Type = "directory"
 		} else {
+			// We are not interested in files other than `gocryptfs.conf`
+			if subItem.Name != "gocryptfs.conf" {
+				continue
+			}
 			subItem.Type = "file"
 		}
 		subPathItems = append(subPathItems, subItem)
