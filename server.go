@@ -4,8 +4,10 @@ import (
 	"Cloak/models"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/pkg/xattr"
 	template "html/template"
 	"io"
 	"io/ioutil"
@@ -14,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -451,6 +454,8 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 		}
 		form.Pwd = currentUser.HomeDir
 	}
+	// Normalize path
+	form.Pwd = filepath.Clean(form.Pwd)
 
 	// List items
 	items, err := ioutil.ReadDir(form.Pwd)
@@ -479,6 +484,23 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 		if subItem.Name[0] == '.' {
 			continue
 		}
+
+		// Skip symbolic links
+		if item.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
+
+		// Skip items that aren't visible in Finder app
+		xattrs, err := xattr.Get(filepath.Join(form.Pwd, item.Name()), "com.apple.FinderInfo")
+		if err != nil && errors.Is(err, xattr.ENOATTR) {
+			logger.Warn().Err(err).
+				Str("pwd", form.Pwd).
+				Str("fileName", subItem.Name).
+				Msg("Failed to get extended attributes")
+			continue
+		}
+		// TODO Filter out
+		logger.Info().Bytes("com.apple.FinderInfo", xattrs)
 		if item.IsDir() {
 			subItem.Type = "directory"
 		} else {
@@ -491,6 +513,7 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{
 		"code":  ERR_CODE_OK,
 		"msg":   ERR_MSG_OK,
+		"sep":   string(filepath.Separator),
 		"pwd":   form.Pwd,
 		"items": subPathItems,
 	})

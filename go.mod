@@ -11,6 +11,7 @@ require (
 	github.com/magefile/mage v1.10.0
 	github.com/mattn/go-sqlite3 v1.14.2
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
+	github.com/pkg/xattr v0.4.1
 	github.com/rs/zerolog v1.19.0
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/sys v0.0.0-20200905004654-be1d3432aa8f // indirect
