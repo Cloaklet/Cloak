@@ -1,4 +1,4 @@
-Vue.component("vault-unlock-modal", {
+Vue.component('vault-unlock-modal', {
   template: '#vault-unlock-modal-template',
   props: ['vault'],
   delimiters: ['${', '}'],
@@ -21,12 +21,62 @@ Vue.component("vault-unlock-modal", {
   }
 });
 
+Vue.component('file-selection-modal', {
+  template: '#file-selection-modal-template',
+  delimiters: ['${', '}'],
+  data: function() {
+    return {
+      pwd: "",
+      items: [],
+      selected: null,
+    }
+  },
+  methods: {
+    listSubPaths(pwd) {
+      axios.post(`/api/subpaths`, {
+        pwd: pwd,
+      }).then(resp => {
+        if (resp.data.code !== 0) {
+          return alert(JSON.stringify(resp)) // FIXME
+        }
+        this.pwd = resp.data.pwd;
+        this.items = resp.data.items;
+      }).catch(err => {
+        console.error(err)
+        // FIXME
+      })
+    },
+    selectItem(item) {
+      if (item.type === 'directory') {
+        return this.listSubPaths(`${this.pwd}/${item.name}`)
+      }
+      // FIXME Only allow selecting gocryptfs.conf
+      this.selected = item
+    },
+    selectParentPath() {
+      this.listSubPaths(`${this.pwd}/..`)
+    },
+    requestAddVault() {
+      console.info(`TBD: request adding vault: ${this.selected}`)
+    },
+    close() {
+      this.$emit('close')
+    }
+  },
+  mounted() {
+    this.$nextTick(() => {
+      this.listSubPaths('$HOME')
+    })
+  }
+});
+
 new Vue({
   delimiters: ['${', '}'],
   el: '#app',
   data: {
     vaults: [],
     showUnlock: false,
+    showFileSelection: false,
     unlocking: false,
     removing: false,
   },
