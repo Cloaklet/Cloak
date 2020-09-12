@@ -28,6 +28,7 @@ new Vue({
     vaults: [],
     showUnlock: false,
     unlocking: false,
+    removing: false,
   },
   computed: {
     selected: function () {
@@ -49,6 +50,23 @@ new Vue({
           v.selected = false
         }
       }
+    },
+    removeVault(vaultId) {
+      this.removing = true;
+      axios.delete(`/api/vault/${vaultId}`).then(resp => {
+        this.removing = false;
+        if (resp.data.code !== 0) {
+          return alert(JSON.stringify(resp)) // FIXME
+        }
+        for (let i = 0; i < this.vaults.length; i++) {
+          if (this.vaults[i].id === vaultId) {
+            this.vaults.splice(i, 1);
+            break
+          }
+        }
+      }).catch((err) => {
+        this.removing = false
+      })
     },
     unlockVault(info) { // info = {id, password}
       this.unlocking = true;

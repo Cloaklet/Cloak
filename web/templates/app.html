@@ -42,14 +42,21 @@
     #info-panel>div {
       height: 100%;
     }
-    #add-vault-button {
+    #vault-list-buttons {
       width: 100%;
-      border: none;
-      border-top: .05rem solid #dadee4;
-      border-radius: 0;
       color: unset;
-      position: absolute;
       bottom: 0;
+    }
+    #vault-list-buttons .btn {
+      border-color: #dadee4;
+      border-radius: 0;
+      border-bottom: none;
+    }
+    #vault-list-buttons .btn:first-child {
+      border-left: none;
+    }
+    #vault-list-buttons .btn:last-child {
+      border-right: none;
     }
     #vault-info {
       padding: 1.4rem;
@@ -102,12 +109,13 @@
               </a>
             </div>
           </div>
-          <div class="btn btn-lg bg-gray" id="add-vault-button">
-            <div class="tile tile-centered">
-              <div class="tile-content">
-                <div class="tile-title h6 text-normal">➕ Add Vault</div>
-              </div>
-            </div>
+          <div class="btn-group btn-group-block p-absolute" id="vault-list-buttons">
+            <button class="btn btn-lg bg-gray h6 text-normal tooltip"
+                    data-tooltip="Add Vault">➕</button>
+            <button class="btn btn-lg bg-gray h6 text-normal tooltip"
+                    data-tooltip="Remove Vault"
+                    v-bind:disabled="!selected || removing"
+                    @click="removeVault(selected.id)">➖</button>
           </div>
         </div>
         <div class="column col-8" id="info-panel">
