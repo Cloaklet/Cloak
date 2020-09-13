@@ -1,3 +1,4 @@
+// Vault password prompt
 Vue.component('vault-unlock-modal', {
   template: '#vault-unlock-modal-template',
   props: ['vault'],
@@ -21,6 +22,7 @@ Vue.component('vault-unlock-modal', {
   }
 });
 
+// File selection dialog
 Vue.component('file-selection-modal', {
   template: '#file-selection-modal-template',
   delimiters: ['${', '}'],
@@ -38,14 +40,14 @@ Vue.component('file-selection-modal', {
         pwd: pwd,
       }).then(resp => {
         if (resp.data.code !== 0) {
-          return alert(JSON.stringify(resp)) // FIXME
+          // Pass error to root app via custom event
+          return this.$emit('alert', resp.data.code, resp.data.msg)
         }
         this.pwd = resp.data.pwd;
         this.items = resp.data.items;
         this.sep = resp.data.sep;
       }).catch(err => {
-        console.error(err)
-        // FIXME
+        return this.$emit('alert', -1, err.message || 'Unknown error')
       })
     },
     selectItem(item) {
@@ -77,6 +79,21 @@ Vue.component('file-selection-modal', {
   }
 });
 
+// Alert message area
+Vue.component('alert', {
+  template: '#alert-template',
+  delimiters: ['${', '}'],
+  props: ['message', 'code'],
+  data: function () {
+    return {}
+  },
+  computed: {
+    isError() {
+      return this.code !== 0
+    },
+  },
+});
+
 new Vue({
   delimiters: ['${', '}'],
   el: '#app',
@@ -86,6 +103,8 @@ new Vue({
     showFileSelection: false,
     unlocking: false,
     removing: false,
+    errorCode: 0,
+    errorMessage: "",
   },
   computed: {
     selected: function () {
@@ -98,6 +117,10 @@ new Vue({
     }
   },
   methods: {
+    alert(code, msg) {
+      this.errorCode = code;
+      this.errorMessage = msg
+    },
     selectVault(vaultId) {
       for (let v of this.vaults) {
         if (v.id === vaultId) {
@@ -114,9 +137,8 @@ new Vue({
         path: vaultPath,
       }).then(resp => {
         if (resp.data.code !== 0) {
-          return alert(JSON.stringify(resp)) // FIXME
+          return this.alert(resp.data.code, resp.data.msg)
         }
-        // TODO
         let v = resp.data.item;
         this.vaults.push({
           id: v.id,
@@ -126,6 +148,8 @@ new Vue({
           state: v.state,
           selected: false,
         })
+      }).catch(err => {
+        return this.alert(-1, err.message || 'Unknown error')
       })
     },
     removeVault(vaultId) {
@@ -133,7 +157,7 @@ new Vue({
       axios.delete(`/api/vault/${vaultId}`).then(resp => {
         this.removing = false;
         if (resp.data.code !== 0) {
-          return alert(JSON.stringify(resp)) // FIXME
+          return this.alert(resp.data.code, resp.data.msg)
         }
         for (let i = 0; i < this.vaults.length; i++) {
           if (this.vaults[i].id === vaultId) {
@@ -141,8 +165,9 @@ new Vue({
             break
           }
         }
-      }).catch((err) => {
-        this.removing = false
+      }).catch(err => {
+        this.removing = false;
+        return this.alert(-1, err.message || 'Unknown error')
       })
     },
     unlockVault(info) { // info = {id, password}
@@ -154,11 +179,12 @@ new Vue({
         this.unlocking = false;
         this.showUnlock = false;
         if (resp.data.code !== 0) {
-          return alert(JSON.stringify(resp)) // FIXME
+          return this.alert(resp.data.code, resp.data.msg)
         }
         this.selected.state = resp.data.state
-      }).catch((err) => {
-        this.unlocking = false
+      }).catch(err => {
+        this.unlocking = false;
+        return this.alert(-1, err.message || 'Unknown error')
       })
     },
     lockVault(vaultId) {
@@ -166,9 +192,11 @@ new Vue({
         op: 'lock',
       }).then(resp => {
         if (resp.data.code !== 0) {
-          return alert(JSON.stringify(resp)) // FIXME
+          return this.alert(resp.data.code, resp.data.msg)
         }
         this.selected.state = resp.data.state
+      }).catch(err => {
+        return this.alert(-1, err.message || 'Unknown error')
       })
     },
     revealMountpoint(vaultId) {
@@ -176,15 +204,17 @@ new Vue({
         op: 'reveal',
       }).then(resp => {
         if (resp.data.code !== 0) {
-          return alert(JSON.stringify(resp)) // FIXME
+          return this.alert(resp.data.code, resp.data.msg)
         }
+      }).catch(err => {
+        return this.alert(-1, err.message || 'Unknown error')
       })
     }
   },
   mounted () {
     axios.get('http://127.0.0.1:9763/api/vaults').then(resp => {
       if (resp.data.code !== 0) {
-        return alert(JSON.stringify(resp)) // FIXME
+        return this.alert(resp.data.code, resp.data.msg)
       }
       let vaults = [];
       for (const v of resp.data.items) {
@@ -198,6 +228,8 @@ new Vue({
         })
       }
       this.vaults = vaults;
+    }).catch(err => {
+      return this.alert(-1, err.message || 'Unknown error')
     })
   }
 });

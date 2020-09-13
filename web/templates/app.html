@@ -15,11 +15,13 @@
       box-shadow: 0 .25rem 1rem rgba(48,55,66,.15);
     }
     #app {
-      min-height: 500px;
       border-radius: 0;
     }
     #app header {
       padding: .7rem;
+    }
+    #app .card {
+      min-height: 500px;
     }
     .menu {
       box-shadow: none;
@@ -85,12 +87,19 @@
     #current-path {
       max-width: 75%;
     }
+    #alert {
+      top: 1rem;
+      transform: translate(-50%,0);
+      left: 50%;
+      width: 50%;
+      box-shadow: 0 .25rem 0.5rem rgba(48, 55, 66, .3);
+    }
   </style>
 </head>
 <body>
-<div class="container hero">
+<div class="container hero" id="app">
   <div class="columns col-gapless">
-    <div class="column col-7 col-ml-auto col-mr-auto card" id="app">
+    <div class="column col-7 col-ml-auto col-mr-auto card">
       <div class="card-header p-0">
         <header class="navbar bg-primary text-light">
           <section class="navbar-section">
@@ -102,7 +111,7 @@
         <div class="column col-4 p-relative">
           <div class="menu p-0" id="vault-list">
             <div class="menu-item mt-0" v-for="vault in vaults" @click="selectVault(vault.id)">
-              <a href="javascript:void(0)" v-bind:class="{ active: vault.selected }">
+              <a href="javascript:void(0)" :class="{ active: vault.selected }">
                 <div class="tile tile-centered">
                   <div class="tile-icon">
                     <i class="ri-lock-unlock-fill ri-lg" v-if="vault.state === 'unlocked'"></i>
@@ -122,7 +131,7 @@
                     @click="showFileSelection = true">➕</button>
             <button class="btn btn-lg bg-gray h6 text-normal tooltip"
                     data-tooltip="Remove Vault"
-                    v-bind:disabled="!selected || removing"
+                    :disabled="!selected || removing"
                     @click="removeVault(selected.id)">➖</button>
           </div>
         </div>
@@ -141,7 +150,7 @@
                 <div class="tile-title h5">${ selected.name }</div>
                 <small class="tile-subtitle text-gray">${ selected.path }</small>
                 <span class="chip text-uppercase text-bold text-light p-absolute"
-                      v-bind:class="{ 'bg-primary': selected.state === 'unlocked' }">${ selected.state }</span>
+                      :class="{ 'bg-primary': selected.state === 'unlocked' }">${ selected.state }</span>
               </div>
             </div>
             <div class="vault-operations text-center" v-if="selected.state === 'unlocked'">
@@ -166,14 +175,19 @@
         <vault-unlock-modal v-if="showUnlock"
                             @close="showUnlock = false"
                             @unlock-vault="unlockVault"
-                            v-bind:vault="selected"></vault-unlock-modal>
+                            :vault="selected"></vault-unlock-modal>
         <file-selection-modal v-if="showFileSelection"
                               @close="showFileSelection = false"
-                              @add-vault="addVault"></file-selection-modal>
+                              @add-vault="addVault"
+                              @alert="alert"></file-selection-modal>
       </div>
     </div>
   </div>
+  <alert @close-alert="errorMessage = ''"
+         :message="errorMessage"
+         :code="errorCode"></alert>
 </div>
+
 <script type="text/x-template" id="vault-unlock-modal-template">
 <div class="modal active" @keydown.esc="close">
   <a href="javascript:void(0)" class="modal-overlay" aria-label="Close" @click="close"></a>
@@ -200,7 +214,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary"
-              v-bind:disabled="!password.length"
+              :disabled="!password.length"
               @click="requestUnlockVault">Unlock</button>
       <button class="btn" aria-label="Close" @click="close">Cancel</button>
     </div>
@@ -233,7 +247,7 @@
               </a>
             </div>
             <div class="menu-item mt-0" v-for="item in items" @click="selectItem(item)">
-              <a href="javascript:void(0)" v-bind:class="{ active: selected === item }">
+              <a href="javascript:void(0)" :class="{ active: selected === item }">
                 <div class="tile tile-centered">
                   <div class="tile-icon">
                     <i class="ri-file-shield-2-line" v-if="item.type === 'file'"></i>
@@ -257,12 +271,22 @@
                v-model="pwd"
                disabled>
         <button class="btn btn-primary"
-                v-bind:disabled="!selected"
+                :disabled="!selected"
                 @click="requestAddVault">Open</button>
         <button class="btn" aria-label="Close" @click="close">Cancel</button>
       </div>
     </div>
   </div>
+</script>
+
+<script type="text/x-template" id="alert-template">
+<div class="toast p-absolute"
+     id="alert"
+     v-show="message.length"
+     :class="[isError ? 'toast-error' : 'toast-success']">
+  <button class="btn btn-clear float-right" @click="$emit('close-alert')"></button>
+  <p>${ message } (error code: ${ code })</p>
+</div>
 </script>
 
 <script src="/static/app.js"></script>
