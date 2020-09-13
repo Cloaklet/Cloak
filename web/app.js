@@ -193,7 +193,7 @@ new Vue({
     },
     unlockVault(info) { // info = {id, password}
       this.unlocking = true;
-      axios.post(`http://127.0.0.1:9763/api/vault/${info.id}`, {
+      axios.post(`/api/vault/${info.id}`, {
         op: 'unlock',
         password: info.password,
       }).then(resp => {
@@ -210,7 +210,7 @@ new Vue({
       })
     },
     lockVault(vaultId) {
-      axios.post(`http://127.0.0.1:9763/api/vault/${vaultId}`, {
+      axios.post(`/api/vault/${vaultId}`, {
         op: 'lock',
       }).then(resp => {
         if (resp.data.code !== 0) {
@@ -236,7 +236,7 @@ new Vue({
     }
   },
   mounted () {
-    axios.get('http://127.0.0.1:9763/api/vaults').then(resp => {
+    axios.get('/api/vaults').then(resp => {
       if (resp.data.code !== 0) {
         return this.alert(resp.data.code, resp.data.msg)
       }
