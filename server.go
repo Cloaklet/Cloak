@@ -25,7 +25,7 @@ import (
 
 const (
 	ERR_CODE_OK                    = 0
-	ERR_MSG_OK                     = "ok"
+	ERR_MSG_OK                     = "Ok"
 	ERR_CODE_LIST_FAILED           = 1
 	ERR_MSG_LIST_FAILED            = "Failed to list vaults"
 	ERR_CODE_MALFORMED_INPUT       = 2

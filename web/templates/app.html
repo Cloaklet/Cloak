@@ -281,12 +281,12 @@
 </script>
 
 <script type="text/x-template" id="alert-template">
-<div class="toast p-fixed"
+<div class="toast p-fixed d-inline"
      id="alert"
      v-show="message.length"
      :class="[isError ? 'toast-error' : 'toast-success']">
-  <button class="btn btn-clear float-right" @click="$emit('close-alert')"></button>
-  <p>${ message } (error code: ${ code })</p>
+  <button class="btn btn-clear float-right" @click="$emit('close-alert')" v-if="isError"></button>
+  <p>${ message }<span v-if="isError"> (error code: ${ code })</span></p>
 </div>
 </script>
 

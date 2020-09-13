@@ -95,8 +95,9 @@ Vue.component('alert', {
 
       if (newVaule === 0) {
         this.timeoutId = setTimeout(() => {
-          this.$emit('close-alert')
-        }, 5000)
+          this.$emit('close-alert');
+          this.timeoutId = null
+        }, 2000)
       }
     },
   },
@@ -121,7 +122,7 @@ new Vue({
     showFileSelection: false,
     unlocking: false,
     removing: false,
-    errorCode: 0,
+    errorCode: null,
     errorMessage: "",
   },
   computed: {
@@ -165,7 +166,8 @@ new Vue({
           mountpoint: v.mountpoint,
           state: v.state,
           selected: false,
-        })
+        });
+        this.alert(resp.data.code, resp.data.msg);
       }).catch(err => {
         return this.alert(-1, err.message || 'Unknown error')
       })
@@ -173,7 +175,6 @@ new Vue({
     removeVault(vaultId) {
       this.removing = true;
       axios.delete(`/api/vault/${vaultId}`).then(resp => {
-        this.removing = false;
         if (resp.data.code !== 0) {
           return this.alert(resp.data.code, resp.data.msg)
         }
@@ -183,6 +184,8 @@ new Vue({
             break
           }
         }
+        this.alert(resp.data.code, resp.data.msg);
+        this.removing = false;
       }).catch(err => {
         this.removing = false;
         return this.alert(-1, err.message || 'Unknown error')
@@ -199,6 +202,7 @@ new Vue({
         if (resp.data.code !== 0) {
           return this.alert(resp.data.code, resp.data.msg)
         }
+        this.alert(resp.data.code, resp.data.msg);
         this.selected.state = resp.data.state
       }).catch(err => {
         this.unlocking = false;
@@ -212,6 +216,7 @@ new Vue({
         if (resp.data.code !== 0) {
           return this.alert(resp.data.code, resp.data.msg)
         }
+        this.alert(resp.data.code, resp.data.msg);
         this.selected.state = resp.data.state
       }).catch(err => {
         return this.alert(-1, err.message || 'Unknown error')
@@ -224,6 +229,7 @@ new Vue({
         if (resp.data.code !== 0) {
           return this.alert(resp.data.code, resp.data.msg)
         }
+        this.alert(resp.data.code, resp.data.msg);
       }).catch(err => {
         return this.alert(-1, err.message || 'Unknown error')
       })
