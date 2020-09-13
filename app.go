@@ -3,6 +3,7 @@ package main
 import (
 	"Cloak/icons"
 	"Cloak/models"
+	"Cloak/server"
 	"database/sql"
 	"github.com/getlantern/systray"
 	"github.com/golang-migrate/migrate/v4"
@@ -13,7 +14,7 @@ import (
 )
 
 type App struct {
-	apiServer *ApiServer
+	apiServer *server.ApiServer
 	repo      *models.VaultRepo
 	db        *sql.DB
 }
@@ -70,7 +71,7 @@ func NewApp() *App {
 	}()
 
 	// FIXME
-	app.apiServer = NewApiServer("/bin/gocryptfs", app.repo)
+	app.apiServer = server.NewApiServer(app.repo)
 	go func() {
 		app.apiServer.Start("127.0.0.1:9763")
 	}()

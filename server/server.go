@@ -52,7 +52,11 @@ const (
 	ERR_MSG_CANT_OPEN_VAULT_CONF   = "gocryptfs.conf could not be opened"
 )
 
-var logger zerolog.Logger // FIXME
+var logger zerolog.Logger
+
+func init() {
+	logger = extension.GetLogger("server")
+}
 
 type ApiServer struct {
 	repo        *models.VaultRepo   // database repository
@@ -109,16 +113,24 @@ func (s *ApiServer) Stop() error {
 }
 
 // NewApiServer creates a new ApiServer instance
-// - cmdPath specifies the location of `gocryptfs` binary
 // - repo passes in the vault repository to persist vault list data
-func NewApiServer(cmdPath string, repo *models.VaultRepo) *ApiServer {
+func NewApiServer(repo *models.VaultRepo) *ApiServer {
 	server := ApiServer{
 		repo:        repo,
 		echo:        echo.New(),
-		cmd:         cmdPath,
+		cmd:         "",
 		processes:   map[int64]*exec.Cmd{},
 		mountPoints: map[int64]string{},
 	}
+
+	var err error
+	if server.cmd, err = extension.LocateGocryptfsBinary(); err != nil {
+		logger.Error().Err(err).
+			Msg("Failed to locate gocryptfs binary, nothing will work")
+	} else {
+		logger.Info().Str("gocryptfs", server.cmd).Msg("Gocryptfs binary located")
+	}
+
 	server.echo.Renderer = &Template{
 		template: template.Must(template.ParseGlob("web/templates/*.html")),
 	}
