@@ -123,7 +123,7 @@ new Vue({
     unlocking: false,
     removing: false,
     errorCode: null,
-    errorMessage: "",
+    errorMessage: '',
   },
   computed: {
     selected: function () {
@@ -233,7 +233,11 @@ new Vue({
       }).catch(err => {
         return this.alert(-1, err.message || 'Unknown error')
       })
-    }
+    },
+    closeAlert() {
+      this.errorMessage = '';
+      this.errorCode = null
+    },
   },
   mounted () {
     axios.get('/api/vaults').then(resp => {
