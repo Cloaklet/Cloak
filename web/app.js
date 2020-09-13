@@ -84,8 +84,26 @@ Vue.component('alert', {
   template: '#alert-template',
   delimiters: ['${', '}'],
   props: ['message', 'code'],
+  watch: {
+    code(newVaule) {
+      // Use setTimeout to automatically close the alert if it is not an error.
+      // If the code changes then we reset the timeout.
+      if (this.timeoutId !== null) {
+        clearTimeout(this.timeoutId);
+        this.timeoutId = null
+      }
+
+      if (newVaule === 0) {
+        this.timeoutId = setTimeout(() => {
+          this.$emit('close-alert')
+        }, 5000)
+      }
+    },
+  },
   data: function () {
-    return {}
+    return {
+      timeoutId: null,
+    }
   },
   computed: {
     isError() {
