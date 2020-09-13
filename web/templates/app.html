@@ -234,10 +234,10 @@
            @click="close"></a>
         <div class="modal-title h5">Select the gocryptfs.conf file inside target vault</div>
       </div>
-      <div class="modal-body p-0">
+      <div class="modal-body p-0 bg-gray">
         <div class="content">
           <div class="menu p-0">
-            <div class="menu-item mt-0" @click="selectParentPath" v-if="pwd !== '/'">
+            <div class="menu-item mt-0" @click="selectParentPath" v-if="hasParent">
               <a href="javascript:void(0)">
                 <div class="tile tile-centered">
                   <div class="tile-icon"><i class="ri-arrow-up-line"></i></div>

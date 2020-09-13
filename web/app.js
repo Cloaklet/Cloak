@@ -1,3 +1,10 @@
+Vue.prototype.$errorInfo = function(err) {
+  if (err.response && err.response.data) {
+    return [err.response.data.code, err.response.data.msg]
+  }
+  return [-1, err.message || 'Unknown error']
+};
+
 // Vault password prompt
 Vue.component('vault-unlock-modal', {
   template: '#vault-unlock-modal-template',
@@ -34,6 +41,11 @@ Vue.component('file-selection-modal', {
       sep: "",  // path separator
     }
   },
+  computed: {
+    hasParent: function() {
+      return this.pwd && this.pwd !== '/'
+    }
+  },
   methods: {
     listSubPaths(pwd) {
       axios.post(`/api/subpaths`, {
@@ -47,7 +59,7 @@ Vue.component('file-selection-modal', {
         this.items = resp.data.items;
         this.sep = resp.data.sep;
       }).catch(err => {
-        return this.$emit('alert', -1, err.message || 'Unknown error')
+        return this.$emit(...['alert'].concat(this.$root.$errorInfo(err)))
       })
     },
     selectItem(item) {
@@ -169,7 +181,7 @@ new Vue({
         });
         this.alert(resp.data.code, resp.data.msg);
       }).catch(err => {
-        return this.alert(-1, err.message || 'Unknown error')
+        return this.alert(...this.$errorInfo(err))
       })
     },
     removeVault(vaultId) {
@@ -188,7 +200,7 @@ new Vue({
         this.removing = false;
       }).catch(err => {
         this.removing = false;
-        return this.alert(-1, err.message || 'Unknown error')
+        return this.alert(...this.$errorInfo(err))
       })
     },
     unlockVault(info) { // info = {id, password}
@@ -206,7 +218,7 @@ new Vue({
         this.selected.state = resp.data.state
       }).catch(err => {
         this.unlocking = false;
-        return this.alert(-1, err.message || 'Unknown error')
+        return this.alert(...this.$errorInfo(err))
       })
     },
     lockVault(vaultId) {
@@ -219,7 +231,7 @@ new Vue({
         this.alert(resp.data.code, resp.data.msg);
         this.selected.state = resp.data.state
       }).catch(err => {
-        return this.alert(-1, err.message || 'Unknown error')
+        return this.alert(...this.$errorInfo(err))
       })
     },
     revealMountpoint(vaultId) {
@@ -231,7 +243,7 @@ new Vue({
         }
         this.alert(resp.data.code, resp.data.msg);
       }).catch(err => {
-        return this.alert(-1, err.message || 'Unknown error')
+        return this.alert(...this.$errorInfo(err))
       })
     },
     closeAlert() {
@@ -257,7 +269,7 @@ new Vue({
       }
       this.vaults = vaults;
     }).catch(err => {
-      return this.alert(-1, err.message || 'Unknown error')
+      return this.alert(...this.$errorInfo(err))
     })
   }
 });
