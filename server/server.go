@@ -120,6 +120,7 @@ func (s *ApiServer) Stop() error {
 // NewApiServer creates a new ApiServer instance
 // - repo passes in the vault repository to persist vault list data
 func NewApiServer(repo *models.VaultRepo) *ApiServer {
+	// Create server
 	server := ApiServer{
 		repo:          repo,
 		echo:          echo.New(),
@@ -129,6 +130,7 @@ func NewApiServer(repo *models.VaultRepo) *ApiServer {
 		mountPoints:   map[int64]string{},
 	}
 
+	// Detect external runtime dependencies
 	var err error
 	if server.cmd, err = extension.LocateGocryptfsBinary(); err != nil {
 		logger.Error().Err(err).
@@ -138,9 +140,12 @@ func NewApiServer(repo *models.VaultRepo) *ApiServer {
 	}
 	logger.Debug().Bool("fuseAvailable", server.fuseAvailable).Msg("FUSE detection finished")
 
+	// Setup HTTP server
 	server.echo.Renderer = &Template{
 		template: template.Must(template.ParseGlob("web/templates/*.html")),
 	}
+	server.echo.HideBanner = true
+	server.echo.HidePort = true
 	server.echo.Static("/static", "web") // FIXME
 	server.echo.GET("/", func(c echo.Context) error {
 		// Render app page
