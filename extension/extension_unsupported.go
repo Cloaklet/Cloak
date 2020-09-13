@@ -1,5 +1,5 @@
 //+build !darwin,!linux
 
-package main
+package extension
 
 func revealPath(path string) {}

@@ -1,6 +1,6 @@
 //+build darwin
 
-package main
+package extension
 
 /*
 #cgo CFLAGS: -x objective-c

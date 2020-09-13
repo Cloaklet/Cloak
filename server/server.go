@@ -1,12 +1,14 @@
-package main
+package server
 
 import (
+	"Cloak/extension"
 	"Cloak/models"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/xattr"
+	"github.com/rs/zerolog"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -49,6 +51,8 @@ const (
 	ERR_CODE_CANT_OPEN_VAULT_CONF  = 11
 	ERR_MSG_CANT_OPEN_VAULT_CONF   = "gocryptfs.conf could not be opened"
 )
+
+var logger zerolog.Logger // FIXME
 
 type ApiServer struct {
 	repo        *models.VaultRepo   // database repository
@@ -438,7 +442,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			})
 		}
 
-		RevealInFileManager(mountPoint)
+		extension.RevealInFileManager(mountPoint)
 		return c.JSON(http.StatusOK, echo.Map{
 			"code": ERR_CODE_OK,
 			"msg":  ERR_MSG_OK,
