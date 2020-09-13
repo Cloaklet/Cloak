@@ -93,6 +93,7 @@
       left: 50%;
       width: 50%;
       box-shadow: 0 .25rem 0.5rem rgba(48, 55, 66, .3);
+      z-index: 99;
     }
   </style>
 </head>
@@ -280,7 +281,7 @@
 </script>
 
 <script type="text/x-template" id="alert-template">
-<div class="toast p-absolute"
+<div class="toast p-fixed"
      id="alert"
      v-show="message.length"
      :class="[isError ? 'toast-error' : 'toast-success']">
