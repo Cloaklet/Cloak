@@ -265,17 +265,19 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 
 		// Need to wait for this process to exit, otherwise it becomes zombie after exiting.
 		go func() {
-			if err := s.processes[vaultId].Wait(); err != nil {
-				s.lock.Lock()
-				defer s.lock.Unlock()
-				defer delete(s.processes, vaultId)
-				defer delete(s.mountPoints, vaultId)
+			err := s.processes[vaultId].Wait()
+			s.lock.Lock()
+			defer s.lock.Unlock()
+			defer delete(s.processes, vaultId)
+			defer delete(s.mountPoints, vaultId)
 
+			if err != nil {
 				rc := s.processes[vaultId].ProcessState.ExitCode()
 				switch rc {
 				case 10: // Mountpoint not empty
 					logger.Error().Err(err).
 						Int("RC", rc).
+						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
 						Str("mountPoint", *vault.MountPoint).
 						Msg("Mountpoint not empty")
@@ -283,6 +285,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 				case 12: // Incorrect password
 					logger.Error().Err(err).
 						Int("RC", rc).
+						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
 						Str("mountPoint", *vault.MountPoint).
 						Msg("Vault password incorrect")
@@ -290,6 +293,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 				case 23: // gocryptfs.conf IO error
 					logger.Error().Err(err).
 						Int("RC", rc).
+						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
 						Str("mountPoint", *vault.MountPoint).
 						Msg("Gocryptfs cannot open gocryptfs.conf")
@@ -297,6 +301,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 				case 15: // gocryptfs interrupted by SIGINT, a.k.a. we locked this vault
 					logger.Info().
 						Int("RC", rc).
+						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
 						Str("mountPoint", *vault.MountPoint).
 						Msg("Vault locked")
@@ -304,10 +309,17 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 				default:
 					logger.Error().Err(err).
 						Int("RC", rc).
+						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
 						Str("mountPoint", *vault.MountPoint).
 						Msg("Gocryptfs exited unexpectedly")
 				}
+			} else {
+				logger.Debug().
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", *vault.MountPoint).
+					Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
 			}
 		}()
 		// Respond
