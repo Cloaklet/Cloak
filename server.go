@@ -42,6 +42,12 @@ const (
 	ERR_MSG_ALREADY_UNLOCKED       = "This vault is already unlocked"
 	ERR_CODE_ALREADY_LOCKED        = 8
 	ERR_MSG_ALREADY_LOCKED         = "This vault is already locked"
+	ERR_CODE_MOUNTPOINT_NOT_EMPTY  = 9
+	ERR_MSG_MOUNTPOINT_NOT_EMPTY   = "Mountpoint is not empty"
+	ERR_CODE_WRONG_PASSWORD        = 10
+	ERR_MSG_WRONG_PASSWORD         = "Password incorrect"
+	ERR_CODE_CANT_OPEN_VAULT_CONF  = 11
+	ERR_MSG_CANT_OPEN_VAULT_CONF   = "gocryptfs.conf could not be opened"
 )
 
 type ApiServer struct {
@@ -261,43 +267,38 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Msg("Failed to pipe vault password to gocryptfs")
 			}
 		}()
-		s.processes[vaultId].Start()
+		if err := s.processes[vaultId].Start(); err != nil {
+			logger.Error().Err(err).
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", *vault.MountPoint).
+				Str("gocryptfs", s.cmd).
+				Msg("Failed to start gocryptfs process")
+
+			// Cleanup immediately
+			defer delete(s.processes, vaultId)
+			defer delete(s.mountPoints, vaultId)
+
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
 
 		// Need to wait for this process to exit, otherwise it becomes zombie after exiting.
 		go func() {
-			err := s.processes[vaultId].Wait()
+			proc := s.processes[vaultId]
+			err := proc.Wait()
 			s.lock.Lock()
 			defer s.lock.Unlock()
 			defer delete(s.processes, vaultId)
 			defer delete(s.mountPoints, vaultId)
 
 			if err != nil {
-				rc := s.processes[vaultId].ProcessState.ExitCode()
+				rc := proc.ProcessState.ExitCode()
 				switch rc {
-				case 10: // Mountpoint not empty
-					logger.Error().Err(err).
-						Int("RC", rc).
-						Int64("vaultId", vaultId).
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", *vault.MountPoint).
-						Msg("Mountpoint not empty")
-					// FIXME How do we pass the error data back to the UI?
-				case 12: // Incorrect password
-					logger.Error().Err(err).
-						Int("RC", rc).
-						Int64("vaultId", vaultId).
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", *vault.MountPoint).
-						Msg("Vault password incorrect")
-				// FIXME
-				case 23: // gocryptfs.conf IO error
-					logger.Error().Err(err).
-						Int("RC", rc).
-						Int64("vaultId", vaultId).
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", *vault.MountPoint).
-						Msg("Gocryptfs cannot open gocryptfs.conf")
-				// FIXME
+				case 10, 12, 23: // These are known errors meant to be reported directly to the UI
+					break
 				case 15: // gocryptfs interrupted by SIGINT, a.k.a. we locked this vault
 					logger.Info().
 						Int("RC", rc).
@@ -322,6 +323,68 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
 			}
 		}()
+
+		// TODO How to improve this?
+		// Wait for a little time, then check if gocryptfs process is alive
+		// If it exited, there's something wrong, respond to the UI
+		time.Sleep(time.Second * 1)
+		if s.processes[vaultId].ProcessState != nil {
+			defer delete(s.processes, vaultId)
+			defer delete(s.mountPoints, vaultId)
+
+			rc := s.processes[vaultId].ProcessState.ExitCode()
+			switch rc {
+			case 10: // Mountpoint not empty
+				logger.Error().Err(err).
+					Int("RC", rc).
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", *vault.MountPoint).
+					Msg("Mountpoint not empty")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code":  ERR_CODE_MOUNTPOINT_NOT_EMPTY,
+					"msg":   ERR_MSG_MOUNTPOINT_NOT_EMPTY,
+					"state": "locked",
+				})
+			case 12: // Incorrect password
+				logger.Error().Err(err).
+					Int("RC", rc).
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", *vault.MountPoint).
+					Msg("Vault password incorrect")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code":  ERR_CODE_WRONG_PASSWORD,
+					"msg":   ERR_MSG_WRONG_PASSWORD,
+					"state": "locked",
+				})
+			case 23: // gocryptfs.conf IO error
+				logger.Error().Err(err).
+					Int("RC", rc).
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", *vault.MountPoint).
+					Msg("Gocryptfs cannot open gocryptfs.conf")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code":  ERR_CODE_CANT_OPEN_VAULT_CONF,
+					"msg":   ERR_MSG_CANT_OPEN_VAULT_CONF,
+					"state": "locked",
+				})
+			default:
+				logger.Error().Err(err).
+					Int("RC", rc).
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", *vault.MountPoint).
+					Msg("Gocryptfs exited unexpectedly")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code":  ERR_CODE_UNKNOWN,
+					"msg":   fmt.Sprintf(ERR_MSG_UNKNOWN, rc),
+					"state": "locked",
+				})
+			}
+		}
+
 		// Respond
 		return c.JSON(http.StatusOK, echo.Map{
 			"code":  ERR_CODE_OK,
