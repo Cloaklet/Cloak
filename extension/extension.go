@@ -38,3 +38,8 @@ func GetLogger(module string) zerolog.Logger {
 	// Derive from the global logger so all settings are unified
 	return zlog.Logger.With().Str("module", module).Logger()
 }
+
+// IsFuseAvailable returns a bool value indicating FUSE ability of current OS.
+func IsFuseAvailable() bool {
+	return isFuseAvailable()
+}

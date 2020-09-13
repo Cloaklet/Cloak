@@ -26,30 +26,34 @@ import (
 )
 
 const (
-	ERR_CODE_OK                    = 0
-	ERR_MSG_OK                     = "Ok"
-	ERR_CODE_LIST_FAILED           = 1
-	ERR_MSG_LIST_FAILED            = "Failed to list vaults"
-	ERR_CODE_MALFORMED_INPUT       = 2
-	ERR_MSG_MALFORMED_INPUT        = "Malformed input data"
-	ERR_CODE_UNKNOWN               = 3
-	ERR_MSG_UNKNOWN                = "Error: %v"
-	ERR_CODE_PATH_NOT_EXISTS       = 4
-	ERR_MSG_PATH_NOT_EXISTS        = "Given path does not exist"
-	ERR_CODE_UNSUPPORTED_OPERATION = 5
-	ERR_MSG_UNSUPPORTED_OPERATION  = "Unsupported operation"
-	ERR_CODE_VAULT_NOT_EXISTS      = 6
-	ERR_MSG_VAULT_NOT_EXISTS       = "Given vault ID does not exist"
-	ERR_CODE_ALREADY_UNLOCKED      = 7
-	ERR_MSG_ALREADY_UNLOCKED       = "This vault is already unlocked"
-	ERR_CODE_ALREADY_LOCKED        = 8
-	ERR_MSG_ALREADY_LOCKED         = "This vault is already locked"
-	ERR_CODE_MOUNTPOINT_NOT_EMPTY  = 9
-	ERR_MSG_MOUNTPOINT_NOT_EMPTY   = "Mountpoint is not empty"
-	ERR_CODE_WRONG_PASSWORD        = 10
-	ERR_MSG_WRONG_PASSWORD         = "Password incorrect"
-	ERR_CODE_CANT_OPEN_VAULT_CONF  = 11
-	ERR_MSG_CANT_OPEN_VAULT_CONF   = "gocryptfs.conf could not be opened"
+	ERR_CODE_OK                       = 0
+	ERR_MSG_OK                        = "Ok"
+	ERR_CODE_LIST_FAILED              = 1
+	ERR_MSG_LIST_FAILED               = "Failed to list vaults"
+	ERR_CODE_MALFORMED_INPUT          = 2
+	ERR_MSG_MALFORMED_INPUT           = "Malformed input data"
+	ERR_CODE_UNKNOWN                  = 3
+	ERR_MSG_UNKNOWN                   = "Error: %v"
+	ERR_CODE_PATH_NOT_EXISTS          = 4
+	ERR_MSG_PATH_NOT_EXISTS           = "Given path does not exist"
+	ERR_CODE_UNSUPPORTED_OPERATION    = 5
+	ERR_MSG_UNSUPPORTED_OPERATION     = "Unsupported operation"
+	ERR_CODE_VAULT_NOT_EXISTS         = 6
+	ERR_MSG_VAULT_NOT_EXISTS          = "Given vault ID does not exist"
+	ERR_CODE_ALREADY_UNLOCKED         = 7
+	ERR_MSG_ALREADY_UNLOCKED          = "This vault is already unlocked"
+	ERR_CODE_ALREADY_LOCKED           = 8
+	ERR_MSG_ALREADY_LOCKED            = "This vault is already locked"
+	ERR_CODE_MOUNTPOINT_NOT_EMPTY     = 9
+	ERR_MSG_MOUNTPOINT_NOT_EMPTY      = "Mountpoint is not empty"
+	ERR_CODE_WRONG_PASSWORD           = 10
+	ERR_MSG_WRONG_PASSWORD            = "Password incorrect"
+	ERR_CODE_CANT_OPEN_VAULT_CONF     = 11
+	ERR_MSG_CANT_OPEN_VAULT_CONF      = "gocryptfs.conf could not be opened"
+	ERR_CODE_MISSING_GOCRYPTFS_BINARY = 12
+	ERR_MSG_MISSING_GOCRYPTFS_BINARY  = "Cannot locate gocryptfs binary"
+	ERR_CODE_MISSING_FUSE             = 13
+	ERR_MSG_MISSING_FUSE              = "FUSE is not available on this computer"
 )
 
 var logger zerolog.Logger
@@ -59,12 +63,13 @@ func init() {
 }
 
 type ApiServer struct {
-	repo        *models.VaultRepo   // database repository
-	echo        *echo.Echo          // the actual HTTP server
-	cmd         string              // `gocryptfs` binary path
-	processes   map[int64]*exec.Cmd // vaultID: process
-	mountPoints map[int64]string    // vaultID: mountPoint
-	lock        sync.Mutex          // lock on `processes` and `mountPoints`
+	repo          *models.VaultRepo   // database repository
+	echo          *echo.Echo          // the actual HTTP server
+	cmd           string              // `gocryptfs` binary path
+	fuseAvailable bool                // whether FUSE is available
+	processes     map[int64]*exec.Cmd // vaultID: process
+	mountPoints   map[int64]string    // vaultID: mountPoint
+	lock          sync.Mutex          // lock on `processes` and `mountPoints`
 }
 
 // Template is a simple template renderer for labstack/echo
@@ -116,11 +121,12 @@ func (s *ApiServer) Stop() error {
 // - repo passes in the vault repository to persist vault list data
 func NewApiServer(repo *models.VaultRepo) *ApiServer {
 	server := ApiServer{
-		repo:        repo,
-		echo:        echo.New(),
-		cmd:         "",
-		processes:   map[int64]*exec.Cmd{},
-		mountPoints: map[int64]string{},
+		repo:          repo,
+		echo:          echo.New(),
+		cmd:           "",
+		fuseAvailable: extension.IsFuseAvailable(),
+		processes:     map[int64]*exec.Cmd{},
+		mountPoints:   map[int64]string{},
 	}
 
 	var err error
@@ -128,8 +134,9 @@ func NewApiServer(repo *models.VaultRepo) *ApiServer {
 		logger.Error().Err(err).
 			Msg("Failed to locate gocryptfs binary, nothing will work")
 	} else {
-		logger.Info().Str("gocryptfs", server.cmd).Msg("Gocryptfs binary located")
+		logger.Debug().Str("gocryptfs", server.cmd).Msg("Gocryptfs binary located")
 	}
+	logger.Debug().Bool("fuseAvailable", server.fuseAvailable).Msg("FUSE detection finished")
 
 	server.echo.Renderer = &Template{
 		template: template.Must(template.ParseGlob("web/templates/*.html")),
@@ -152,7 +159,7 @@ func NewApiServer(repo *models.VaultRepo) *ApiServer {
 	  - op=reveal: reveal mountpoint in file manager, only available if vault is unlocked
 	- DELETE /vault/N: delete a vault from Cloak. Files are reserved on disk.
 	*/
-	apis := server.echo.Group("/api")
+	apis := server.echo.Group("/api", server.CheckRuntimeDeps)
 	{
 		apis.GET("/vaults", server.ListVaults)
 		apis.DELETE("/vault/:id", server.RemoveVault)
