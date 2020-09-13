@@ -28,6 +28,12 @@
       transform: none;
       border-radius: 0;
     }
+    #vault-list {
+      height: 100%;
+    }
+    #vault-list .empty {
+      height: 100%;
+    }
     #vault-list .menu-item>a {
       padding: .4rem;
       border-left: 4px solid transparent;
@@ -111,6 +117,10 @@
       <div class="columns col-gapless card-body p-0">
         <div class="column col-4 p-relative">
           <div class="menu p-0" id="vault-list">
+            <div class="empty" v-if="!vaults.length">
+              <p class="empty-title h5">No vault yet</p>
+              <p class="empty-subtitle">Click on the add button to add an existing vault or create a new one</p>
+            </div>
             <div class="menu-item mt-0" v-for="vault in vaults" @click="selectVault(vault.id)">
               <a href="javascript:void(0)" :class="{ active: vault.selected }">
                 <div class="tile tile-centered">
