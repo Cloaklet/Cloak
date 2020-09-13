@@ -629,7 +629,6 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 						Str("pwd", form.Pwd).
 						Str("fileName", subItem.Name).
 						Msg("Failed to get extended attributes")
-					continue
 				}
 			}
 			// I have no idea how to match this piece of data, so this is based on some samples I observed.
