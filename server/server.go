@@ -539,6 +539,8 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 
 // AddOrCreateVault adds an existing gocryptfs vault to the repository,
 // Or it creates a new vault at specified location (not currently supported).
+// When adding an existing vault `path` will be the absolute path of `gocryptfs.conf`;
+// When creating a new vault `path` will be the parent directory of the new vault.
 func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 	var form struct {
 		Op   string `json:"op"` // add/create
@@ -551,17 +553,17 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 		})
 	}
 
-	// Check path existence
-	if pathInfo, err := os.Stat(form.Path); err != nil || !pathInfo.IsDir() {
-		return c.JSON(http.StatusOK, echo.Map{
-			"code": ERR_CODE_PATH_NOT_EXISTS,
-			"msg":  ERR_MSG_PATH_NOT_EXISTS,
-		})
-	}
-
 	if form.Op == "add" {
+		// Check path existence
+		if pathInfo, err := os.Stat(form.Path); err != nil || pathInfo.IsDir() {
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_PATH_NOT_EXISTS,
+				"msg":  ERR_MSG_PATH_NOT_EXISTS,
+			})
+		}
+		vaultPath := filepath.Dir(form.Path)
 		_ = s.repo.WithTransaction(func(tx models.Transactional) error {
-			vault, err := s.repo.Create(echo.Map{"path": form.Path}, tx)
+			vault, err := s.repo.Create(echo.Map{"path": vaultPath}, tx)
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, echo.Map{
 					"code": ERR_CODE_UNKNOWN,
