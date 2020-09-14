@@ -3,14 +3,15 @@ package server
 import (
 	"Cloak/extension"
 	"Cloak/models"
+	_ "Cloak/statik"
 	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/xattr"
+	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -66,6 +67,7 @@ const (
 )
 
 var logger zerolog.Logger
+var ReleaseMode string
 
 func init() {
 	logger = extension.GetLogger("server")
@@ -79,15 +81,6 @@ type ApiServer struct {
 	processes     map[int64]*exec.Cmd // vaultID: process
 	mountPoints   map[int64]string    // vaultID: mountPoint
 	lock          sync.Mutex          // lock on `processes` and `mountPoints`
-}
-
-// Template is a simple template renderer for labstack/echo
-type Template struct {
-	template *template.Template
-}
-
-func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return t.template.ExecuteTemplate(w, name, data)
 }
 
 // Start starts the server
@@ -150,16 +143,21 @@ func NewApiServer(repo *models.VaultRepo) *ApiServer {
 	logger.Debug().Bool("fuseAvailable", server.fuseAvailable).Msg("FUSE detection finished")
 
 	// Setup HTTP server
-	server.echo.Renderer = &Template{
-		template: template.Must(template.ParseGlob("web/templates/*.html")),
-	}
 	server.echo.HideBanner = true
 	server.echo.HidePort = true
-	server.echo.Static("/", "web") // FIXME
-	server.echo.GET("/", func(c echo.Context) error {
-		// Render app page
-		return c.Render(200, "app.html", echo.Map{})
-	})
+
+	// Load files from disk when we're not built for release
+	if ReleaseMode != "true" {
+		logger.Info().Msg("Running in DEV mode")
+		server.echo.Static("/", "web")
+	} else { // Load files from embedded FS when in release mode
+		logger.Debug().Msg("Running in RELEASE mode")
+		embedFs, err := fs.New()
+		if err != nil {
+			logger.Fatal().Err(err).Msg("Failed to init FS from embedded assets")
+		}
+		server.echo.GET("/*", echo.WrapHandler(http.FileServer(embedFs)))
+	}
 	/**
 	APIs are located at /api:
 	- GET /vaults: get a list of all known vaults

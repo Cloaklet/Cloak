@@ -7,6 +7,7 @@ import (
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 	"github.com/magefile/mage/sh"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -29,7 +30,7 @@ func buildForTarget(t target) (output string, err error) {
 	}
 
 	executable := "cloak"
-	buildCmd := []string{`go`, `build`}
+	buildCmd := []string{`go`, `build`, `-ldflags`, `-X 'Cloak/server.ReleaseMode=true'`}
 	if t.goos == "windows" {
 		executable += ".exe"
 		buildCmd = append(buildCmd, `-ldflags`, `"-H=windowsgui"`)
@@ -71,7 +72,7 @@ func buildForTarget(t target) (output string, err error) {
 
 // Build build source code files into OS-specific executable
 func Build() error {
-	mg.Deps(InstallDeps, Clean)
+	mg.Deps(InstallDeps, Clean, PackAssets)
 	for _, t := range []target{
 		{"darwin", "amd64"},
 		//{"windows", "amd64"},
@@ -87,9 +88,26 @@ func Build() error {
 	return nil
 }
 
+// PackAssets packs static files using `statik` tool
+func PackAssets() error {
+	return sh.Run(`statik`, `-src`, `web`, `-dest`, `.`, `-f`)
+}
+
 // InstallDeps installs extra tools required for building
 func InstallDeps() error {
 	fmt.Println("Installing Deps...")
+	for toolBinary, toolPkg := range map[string]string{
+		"statik": "github.com/rakyll/statik",
+	} {
+		if toolPath, err := exec.LookPath(toolBinary); err != nil {
+			fmt.Printf("> %s not found, install from %s\n", toolBinary, toolPkg)
+			if err = sh.Run(`go`, `install`, toolPkg); err != nil {
+				return err
+			}
+		} else {
+			fmt.Printf("> Found %s: %s\n", toolBinary, toolPath)
+		}
+	}
 	//return sh.Run(`go`, `get`, `github.com/akavel/rsrc`)
 	return nil
 }
