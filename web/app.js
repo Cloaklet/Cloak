@@ -127,6 +127,40 @@ Vue.component('file-selection-modal', {
   }
 });
 
+// Vault creation / addition prompt
+Vue.component('add-vault-modal', {
+  template: '#add-vault-modal-template',
+  delimiters: ['${', '}'],
+  props: ['adding', 'creating'],
+  data: function() {
+    return {
+      mode: null,  // add / create / null
+      createVaultName: null,
+      createVaultDir: null,
+      addVaultFile: null,
+      showDirSelection: false,
+      showFileSelection: false,
+    }
+  },
+  methods: {
+    setCreateVaultDir(path) {
+      this.createVaultDir = path
+    },
+    setAddVaultFile(path) {
+      this.addVaultFile = path
+    },
+    close() {
+      this.$emit('close')
+    },
+    requestCreateVault() {
+      this.$emit('create-vault', this.createVaultDir, this.createVaultName)
+    },
+    requestAddVault() {
+      this.$emit('add-vault', this.addVaultFile)
+    },
+  },
+});
+
 // Alert message area
 Vue.component('alert', {
   template: '#alert-template',
@@ -167,8 +201,10 @@ new Vue({
   data: {
     vaults: [],
     showUnlock: false,
-    showFileSelection: false,
+    showAddVaultModal: false,
     unlocking: false,
+    addingVault: false,
+    creatingVault: false,
     removing: false,
     errorCode: null,
     errorMessage: '',
@@ -198,11 +234,16 @@ new Vue({
         }
       }
     },
-    addVault(vaultPath) {
+    createVault(vaultDir, vaultName) {
+      // FIXME
+    },
+    addVault(vaultFilePath) {
+      this.addingVault = true;
       axios.post(`/api/vaults`, {
         op: 'add',
-        path: vaultPath,
+        path: vaultFilePath,
       }).then(resp => {
+        this.addingVault = false;
         if (resp.data.code !== 0) {
           return this.alert(resp.data.code, resp.data.msg)
         }
@@ -216,7 +257,10 @@ new Vue({
           selected: false,
         });
         this.alert(resp.data.code, resp.data.msg);
+        // Close add-vault modal
+        this.showAddVaultModal = false
       }).catch(err => {
+        this.addingVault = false;
         return this.alert(...this.$errorInfo(err))
       })
     },
