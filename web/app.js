@@ -110,14 +110,11 @@ Vue.component('file-selection-modal', {
     },
     selectItem() {
       if (this.mode === 'file') {
-        return this.$emit('selected', `${this.pwd}${this.sep}${this.selected.name}`)
+        this.$emit('selected', `${this.pwd}${this.sep}${this.selected.name}`)
       } else if (this.mode === 'directory') {
-        return this.$emit('selected', `${this.pwd}`)
+        this.$emit('selected', `${this.pwd}`)
       }
-    },
-    requestAddVault() { // FIXME Remove this
-      this.$emit('add-vault', `${this.pwd}`);
-      this.$emit('close')
+      this.close()
     },
     close() {
       this.$emit('close')
