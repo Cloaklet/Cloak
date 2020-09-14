@@ -189,8 +189,11 @@
                             :vault="selected"
                             :unlocking="unlocking"></vault-unlock-modal>
         <file-selection-modal v-if="showFileSelection"
+                              mode="file"
+                              title="Select the gocryptfs.conf file inside target vault"
+                              ok-btn="Open"
                               @close="showFileSelection = false"
-                              @add-vault="addVault"
+                              @selected="addVault"
                               @alert="alert"></file-selection-modal>
       </div>
     </div>
@@ -244,12 +247,12 @@
            class="btn btn-clear float-right"
            aria-label="Close"
            @click="close"></a>
-        <div class="modal-title h5">Select the gocryptfs.conf file inside target vault</div>
+        <div class="modal-title h5">${ title }</div>
       </div>
       <div class="modal-body p-0 bg-gray">
         <div class="content">
           <div class="menu p-0">
-            <div class="menu-item mt-0" @click="selectParentPath" v-if="hasParent">
+            <div class="menu-item mt-0" @click="clickOnParentPath" v-if="hasParent">
               <a href="javascript:void(0)">
                 <div class="tile tile-centered">
                   <div class="tile-icon"><i class="ri-arrow-up-line"></i></div>
@@ -259,7 +262,7 @@
                 </div>
               </a>
             </div>
-            <div class="menu-item mt-0" v-for="item in items" @click="selectItem(item)">
+            <div class="menu-item mt-0" v-for="item in items" @click="clickOnItem(item)">
               <a href="javascript:void(0)" :class="{ active: selected === item }">
                 <div class="tile tile-centered">
                   <div class="tile-icon">
@@ -284,8 +287,8 @@
                v-model="pwd"
                disabled>
         <button class="btn btn-primary"
-                :disabled="!selected"
-                @click="requestAddVault">Open</button>
+                :disabled="!canFinishSelection"
+                @click="selectItem">${ okBtn }</button>
         <button class="btn" aria-label="Close" @click="close">Cancel</button>
       </div>
     </div>

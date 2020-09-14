@@ -29,10 +29,36 @@ Vue.component('vault-unlock-modal', {
   }
 });
 
-// File selection dialog
+/* A simple file selection dialog supporting both file and directory selection.
+  - Events:
+    - close: the modal is closed
+    - selected(path): selection finished
+    - alert(code, msg): there is an error to be displayed
+  - Props:
+    - mode: file / directory. Notice: when in `file` mode only `gocryptfs.conf` can be selected.
+    - title: title of the modal, omit to use default text.
+    - okBtn: the text for selection (OK / decide / submit) button, omit to use default text.
+ */
 Vue.component('file-selection-modal', {
   template: '#file-selection-modal-template',
   delimiters: ['${', '}'],
+  props: {
+    mode: {
+      type: String,
+      required: true,
+      validator: function(value) {
+        return ['file', 'directory'].indexOf(value) !== -1
+      }
+    },
+    title: {
+      type: String,
+      default: `Select an item`
+    },
+    okBtn: {
+      type: String,
+      default: "Select"
+    }
+  },
   data: function() {
     return {
       pwd: "",
@@ -44,7 +70,11 @@ Vue.component('file-selection-modal', {
   computed: {
     hasParent: function() {
       return this.pwd && this.pwd !== '/'
-    }
+    },
+    canFinishSelection: function() {
+      // Either we've selected a file in file mode, or we are inside a directory in directory mode
+      return this.mode === 'directory' || (this.mode === 'file' && !!this.selected)
+    },
   },
   methods: {
     listSubPaths(pwd) {
@@ -62,21 +92,30 @@ Vue.component('file-selection-modal', {
         return this.$emit(...['alert'].concat(this.$root.$errorInfo(err)))
       })
     },
-    selectItem(item) {
+    clickOnItem(item) {
+      // Click on a directory enters it
       if (item.type === 'directory') {
         this.selected = null;
         return this.listSubPaths(`${this.pwd}${this.sep}${item.name}`)
       }
+      // Click on a file selects it, but only if we're in file mode
       // Only allow selecting gocryptfs.conf
-      if (item.name === 'gocryptfs.conf') {
+      if (this.mode === 'file' && item.name === 'gocryptfs.conf') {
         this.selected = item
       }
     },
-    selectParentPath() {
+    clickOnParentPath() {
       this.selected = null;
       this.listSubPaths(`${this.pwd}${this.sep}..`)
     },
-    requestAddVault() {
+    selectItem() {
+      if (this.mode === 'file') {
+        return this.$emit('selected', `${this.pwd}${this.sep}${this.selected.name}`)
+      } else if (this.mode === 'directory') {
+        return this.$emit('selected', `${this.pwd}`)
+      }
+    },
+    requestAddVault() { // FIXME Remove this
       this.$emit('add-vault', `${this.pwd}`);
       this.$emit('close')
     },
