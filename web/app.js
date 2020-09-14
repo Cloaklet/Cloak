@@ -8,7 +8,7 @@ Vue.prototype.$errorInfo = function(err) {
 // Vault password prompt
 Vue.component('vault-unlock-modal', {
   template: '#vault-unlock-modal-template',
-  props: ['vault'],
+  props: ['vault', 'unlocking'],
   delimiters: ['${', '}'],
   data: function () {
     return {

@@ -146,7 +146,7 @@ func NewApiServer(repo *models.VaultRepo) *ApiServer {
 	}
 	server.echo.HideBanner = true
 	server.echo.HidePort = true
-	server.echo.Static("/static", "web") // FIXME
+	server.echo.Static("/", "web") // FIXME
 	server.echo.GET("/", func(c echo.Context) error {
 		// Render app page
 		return c.Render(200, "app.html", echo.Map{})

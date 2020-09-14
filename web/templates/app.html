@@ -186,7 +186,8 @@
         <vault-unlock-modal v-if="showUnlock"
                             @close="showUnlock = false"
                             @unlock-vault="unlockVault"
-                            :vault="selected"></vault-unlock-modal>
+                            :vault="selected"
+                            :unlocking="unlocking"></vault-unlock-modal>
         <file-selection-modal v-if="showFileSelection"
                               @close="showFileSelection = false"
                               @add-vault="addVault"
@@ -225,7 +226,8 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary"
-              :disabled="!password.length"
+              :class="{ loading: unlocking }"
+              :disabled="!password.length || unlocking"
               @click="requestUnlockVault">Unlock</button>
       <button class="btn" aria-label="Close" @click="close">Cancel</button>
     </div>
@@ -300,6 +302,6 @@
 </div>
 </script>
 
-<script src="/static/app.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>
