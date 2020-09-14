@@ -202,10 +202,10 @@ new Vue({
     vaults: [],
     showUnlock: false,
     showAddVaultModal: false,
-    unlocking: false,
-    addingVault: false,
-    creatingVault: false,
-    removing: false,
+    unlocking: false, // loading indicator
+    addingVault: false, // loading indicator
+    creatingVault: false, // loading indicator
+    removing: false, // loading indicator
     errorCode: null,
     errorMessage: '',
   },

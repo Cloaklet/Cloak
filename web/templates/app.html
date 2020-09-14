@@ -142,6 +142,7 @@
                     @click="showAddVaultModal = true">➕</button>
             <button class="btn btn-lg bg-gray h6 text-normal tooltip"
                     data-tooltip="Remove Vault"
+                    :class="{ loading: removing }"
                     :disabled="!selected || removing"
                     @click="removeVault(selected.id)">➖</button>
           </div>
