@@ -3,6 +3,7 @@ package server
 import (
 	"Cloak/extension"
 	"Cloak/models"
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
@@ -54,6 +55,14 @@ const (
 	ERR_MSG_MISSING_GOCRYPTFS_BINARY  = "Cannot locate gocryptfs binary"
 	ERR_CODE_MISSING_FUSE             = 13
 	ERR_MSG_MISSING_FUSE              = "FUSE is not available on this computer"
+	ERR_CODE_VAULT_MKDIR_FAILED       = 14
+	ERR_MSG_VAULT_MKDIR_FAILED        = "Failed to create vault directory: %v"
+	ERR_CODE_VAULT_DIR_NOTEMPTY       = 15
+	ERR_MSG_VAULT_DIR_NOTEMPTY        = "New vault directory is not empty"
+	ERR_CODE_VAULT_PW_EMPTY           = 16
+	ERR_MSG_VAULT_PW_EMPTY            = "Password for the new vault is empty"
+	ERR_CODE_VAULT_INIT_CONF_FAILED   = 17
+	ERR_MSG_VAULT_INIT_CONF_FAILED    = "Could not create gocryptfs.conf for the new vault"
 )
 
 var logger zerolog.Logger
@@ -543,8 +552,10 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 // When creating a new vault `path` will be the parent directory of the new vault.
 func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 	var form struct {
-		Op   string `json:"op"` // add/create
-		Path string `json:"path"`
+		Op       string `json:"op"` // add/create
+		Path     string `json:"path"`
+		Name     string `json:"name"`     // optional, only when op=create
+		Password string `json:"password"` // optional, only when op=create
 	}
 	if err := c.Bind(&form); err != nil {
 		return c.JSON(http.StatusBadRequest, echo.Map{
@@ -565,11 +576,18 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 		_ = s.repo.WithTransaction(func(tx models.Transactional) error {
 			vault, err := s.repo.Create(echo.Map{"path": vaultPath}, tx)
 			if err != nil {
+				logger.Error().Err(err).
+					Str("vaultPath", vaultPath).
+					Msg("Failed to add existing vault")
 				return c.JSON(http.StatusInternalServerError, echo.Map{
 					"code": ERR_CODE_UNKNOWN,
 					"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
 				})
 			}
+			logger.Debug().
+				Str("vaultPath", vaultPath).
+				Int64("vaultId", vault.ID).
+				Msg("Added existing vault")
 			return c.JSON(http.StatusOK, echo.Map{
 				"code": ERR_CODE_OK,
 				"msg":  ERR_MSG_OK,
@@ -580,6 +598,120 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 			})
 		})
 		return nil
+	} else if form.Op == "create" {
+		// Check path existence
+		if pathInfo, err := os.Stat(form.Path); err != nil || !pathInfo.IsDir() {
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_PATH_NOT_EXISTS,
+				"msg":  ERR_MSG_PATH_NOT_EXISTS,
+			})
+		}
+		vaultPath := filepath.Join(form.Path, form.Name)
+		if err := os.Mkdir(vaultPath, 0700); err != nil {
+			logger.Error().Err(err).
+				Str("vaultDirectroy", form.Path).
+				Str("vaultName", form.Name).
+				Msg("Failed to create vault directory")
+			return c.JSON(http.StatusOK, echo.Map{
+				"code": ERR_CODE_VAULT_MKDIR_FAILED,
+				"msg":  fmt.Sprintf(ERR_MSG_VAULT_MKDIR_FAILED, err),
+			})
+		}
+
+		// Start a gocryptfs process to init this vault
+		initProc := exec.Command(s.cmd, "-init", "--", vaultPath)
+		// Password is piped through STDIN
+		stdIn, err := initProc.StdinPipe()
+		var errorOutput bytes.Buffer
+		initProc.Stderr = &errorOutput
+		if err != nil {
+			logger.Error().Err(err).
+				Str("vaultDirectroy", form.Path).
+				Str("vaultName", form.Name).
+				Msg("Failed to create STDIN pipe when initializing new vault")
+			return c.JSON(http.StatusInternalServerError, echo.Map{
+				"code": ERR_CODE_UNKNOWN,
+				"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+			})
+		}
+
+		go func() {
+			defer stdIn.Close()
+			if _, err := io.WriteString(stdIn, form.Password); err != nil {
+				logger.Error().Err(err).
+					Str("vaultDirectroy", form.Path).
+					Str("vaultName", form.Name).
+					Msg("Failed to pipe vault password to gocryptfs when initializing new vault")
+			}
+		}()
+
+		// Vault created, add to vault repository
+		if err := initProc.Run(); err == nil {
+			logger.Info().
+				Str("vaultDirectroy", form.Path).
+				Str("vaultName", form.Name).
+				Msg("Vault initialized on disk")
+			_ = s.repo.WithTransaction(func(tx models.Transactional) error {
+				vault, err := s.repo.Create(echo.Map{"path": vaultPath}, tx)
+				if err != nil {
+					logger.Error().Err(err).
+						Str("vaultPath", vaultPath).
+						Msg("Failed to add newly created vault")
+					return c.JSON(http.StatusInternalServerError, echo.Map{
+						"code": ERR_CODE_UNKNOWN,
+						"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, err),
+					})
+				}
+				logger.Debug().
+					Str("vaultPath", vaultPath).
+					Int64("vaultId", vault.ID).
+					Msg("Added newly created vault")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code": ERR_CODE_OK,
+					"msg":  ERR_MSG_OK,
+					"item": VaultInfo{
+						Vault: vault,
+						State: "locked",
+					},
+				})
+			})
+			return nil
+		} else { // Failed to init vault, inspect error and respond to UI
+			rc := initProc.ProcessState.ExitCode()
+			errString := errorOutput.String()
+			errlog := logger.With().Err(err).
+				Int("RC", rc).
+				Str("vaultPath", vaultPath).
+				Str("stdErr", errString).
+				Logger()
+			switch rc {
+			case 6:
+				errlog.Error().Msg("New vault directory (CIPHERDIR) is not empty")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code": ERR_CODE_VAULT_DIR_NOTEMPTY,
+					"msg":  ERR_MSG_VAULT_DIR_NOTEMPTY,
+				})
+			case 22:
+				errlog.Error().Msg("Password for new vault is empty")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code": ERR_CODE_VAULT_PW_EMPTY,
+					"msg":  ERR_MSG_VAULT_PW_EMPTY,
+				})
+			case 24:
+				errlog.Error().Msg("Gocryptfs could not create gocryptfs.conf")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code": ERR_CODE_VAULT_INIT_CONF_FAILED,
+					"msg":  ERR_MSG_VAULT_INIT_CONF_FAILED,
+				})
+			default:
+				errlog.Error().Msg("Unknown error when initializing new vault")
+				return c.JSON(http.StatusOK, echo.Map{
+					"code": ERR_CODE_UNKNOWN,
+					"msg":  fmt.Sprintf(ERR_MSG_UNKNOWN, errString),
+				})
+			}
+		}
+
 	} else {
 		// Currently not supported
 		return c.JSON(http.StatusOK, echo.Map{

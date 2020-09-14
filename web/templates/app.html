@@ -353,6 +353,22 @@
                 <button class="btn input-group-btn" @click="showDirSelection = true">Choose...</button>
               </div>
             </div>
+            <div class="form-group">
+              <label for="create-vault-password" class="form-label">Choose a password for the new vault</label>
+              <input type="password"
+                     class="form-input"
+                     id="create-vault-password"
+                     v-model="createVaultPassword">
+            </div>
+            <div class="form-group" :class="{ 'has-error': !passwordMatch }">
+              <label for="create-vault-password-repeat"
+                     class="form-label">Type the vault password again</label>
+              <input type="password"
+                     class="form-input"
+                     id="create-vault-password-repeat"
+                     v-model="createVaultPasswordCheck">
+              <p class="form-input-hint" v-if="!passwordMatch">Password does not match</p>
+            </div>
           </div>
           <div v-if="mode === 'add'">
             <file-selection-modal v-if="showFileSelection"
@@ -385,7 +401,7 @@
       <button class="btn btn-primary float-right"
               v-if="mode === 'create'"
               :class="{ loading: creating }"
-              :disabled="!createVaultName || !createVaultDir || creating"
+              :disabled="!canCreate || creating"
               @click="requestCreateVault">Create</button>
       <button class="btn btn-primary float-right"
               v-if="mode === 'add'"

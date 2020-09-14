@@ -140,7 +140,17 @@ Vue.component('add-vault-modal', {
       addVaultFile: null,
       showDirSelection: false,
       showFileSelection: false,
+      createVaultPassword: '',
+      createVaultPasswordCheck: '',
     }
+  },
+  computed: {
+    passwordMatch() {
+      return this.createVaultPassword === this.createVaultPasswordCheck
+    },
+    canCreate() {
+      return this.createVaultName && this.createVaultDir && this.createVaultPassword && this.passwordMatch
+    },
   },
   methods: {
     setCreateVaultDir(path) {
@@ -153,7 +163,7 @@ Vue.component('add-vault-modal', {
       this.$emit('close')
     },
     requestCreateVault() {
-      this.$emit('create-vault', this.createVaultDir, this.createVaultName)
+      this.$emit('create-vault', this.createVaultDir, this.createVaultName, this.createVaultPassword)
     },
     requestAddVault() {
       this.$emit('add-vault', this.addVaultFile)
@@ -234,8 +244,33 @@ new Vue({
         }
       }
     },
-    createVault(vaultDir, vaultName) {
-      // FIXME
+    createVault(vaultDir, vaultName, vaultPassword) {
+      axios.post(`/api/vaults`, {
+        op: 'create',
+        path: vaultDir,
+        name: vaultName,
+        password: vaultPassword,
+      }).then(resp => {
+        this.creatingVault = false;
+        if (resp.data.code !== 0) {
+          return this.alert(resp.data.code, resp.data.msg)
+        }
+        let v = resp.data.item;
+        this.vaults.push({
+          id: v.id,
+          name: v.path.split('/').pop(),
+          path: v.path,
+          mountpoint: v.mountpoint,
+          state: v.state,
+          selected: false,
+        });
+        this.alert(resp.data.code, resp.data.msg);
+        // Close add-vault modal
+        this.showAddVaultModal = false
+      }).catch(err => {
+        this.creatingVault = false;
+        return this.alert(...this.$errorInfo(err))
+      })
     },
     addVault(vaultFilePath) {
       this.addingVault = true;
