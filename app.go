@@ -6,17 +6,18 @@ import (
 	"Cloak/server"
 	"database/sql"
 	"github.com/getlantern/systray"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/lopezator/migrator"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/browser"
 )
 
+var ReleaseMode string
+
 type App struct {
-	apiServer *server.ApiServer
-	repo      *models.VaultRepo
-	db        *sql.DB
+	apiServer   *server.ApiServer
+	repo        *models.VaultRepo
+	db          *sql.DB
+	releaseMode bool
 }
 
 func (a *App) stop() {
@@ -25,26 +26,33 @@ func (a *App) stop() {
 }
 
 func (a *App) Migrate() {
-	driver, err := sqlite3.WithInstance(a.db, &sqlite3.Config{})
+	m, err := migrator.New(migrator.Migrations(
+		&migrator.Migration{
+			Name: "Create vaults table",
+			Func: func(tx *sql.Tx) error {
+				_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS vaults (
+    id INTEGER PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
+    mountpoint TEXT UNIQUE
+);`)
+				return err
+			},
+		},
+	))
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to wrap migration instance")
-	}
-	migration, err := migrate.NewWithDatabaseInstance(
-		"file://./migrations", "sqlite", driver,
-	)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to init migration")
+		logger.Fatal().Err(err).Msg("Failed to init migrations")
 	}
 
-	if err = migration.Up(); err != nil && err != migrate.ErrNoChange {
+	if err = m.Migrate(a.db); err != nil {
 		logger.Fatal().Err(err).Msg("Failed to run migrations")
+	} else {
+		logger.Debug().Msg("Migration ok")
 	}
-	logger.Info().Msg("Migration OK")
 }
 
 // NewApp constructs and returns a new App instance
 func NewApp() *App {
-	app := &App{}
+	app := &App{releaseMode: ReleaseMode == "true"}
 
 	var err error
 	app.db, err = sql.Open("sqlite3", "./test.db")
@@ -70,8 +78,7 @@ func NewApp() *App {
 		}
 	}()
 
-	// FIXME
-	app.apiServer = server.NewApiServer(app.repo)
+	app.apiServer = server.NewApiServer(app.repo, app.releaseMode)
 	go func() {
 		app.apiServer.Start("127.0.0.1:9763")
 	}()

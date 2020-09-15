@@ -1,5 +1,0 @@
-CREATE TABLE IF NOT EXISTS vaults (
-    id INTEGER PRIMARY KEY,
-    path TEXT NOT NULL UNIQUE,
-    mountpoint TEXT UNIQUE
-);

@@ -67,7 +67,6 @@ const (
 )
 
 var logger zerolog.Logger
-var ReleaseMode string
 
 func init() {
 	logger = extension.GetLogger("server")
@@ -121,7 +120,7 @@ func (s *ApiServer) Stop() error {
 
 // NewApiServer creates a new ApiServer instance
 // - repo passes in the vault repository to persist vault list data
-func NewApiServer(repo *models.VaultRepo) *ApiServer {
+func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 	// Create server
 	server := ApiServer{
 		repo:          repo,
@@ -147,9 +146,9 @@ func NewApiServer(repo *models.VaultRepo) *ApiServer {
 	server.echo.HidePort = true
 
 	// Load files from disk when we're not built for release
-	if ReleaseMode != "true" {
+	if !releaseMode {
 		logger.Info().Msg("Running in DEV mode")
-		server.echo.Static("/", "web")
+		server.echo.Static("/", "./web")
 	} else { // Load files from embedded FS when in release mode
 		logger.Debug().Msg("Running in RELEASE mode")
 		embedFs, err := fs.New()

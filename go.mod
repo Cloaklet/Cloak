@@ -6,8 +6,8 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6 // indirect
 	github.com/getlantern/systray v1.0.4
-	github.com/golang-migrate/migrate/v4 v4.12.2
 	github.com/labstack/echo/v4 v4.1.17
+	github.com/lopezator/migrator v0.3.0
 	github.com/magefile/mage v1.10.0
 	github.com/mattn/go-sqlite3 v1.14.2
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4

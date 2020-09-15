@@ -30,7 +30,7 @@ func buildForTarget(t target) (output string, err error) {
 	}
 
 	executable := "cloak"
-	buildCmd := []string{`go`, `build`, `-ldflags`, `-X 'Cloak/server.ReleaseMode=true'`}
+	buildCmd := []string{`go`, `build`, `-ldflags`, `-X 'main.ReleaseMode=true'`}
 	if t.goos == "windows" {
 		executable += ".exe"
 		buildCmd = append(buildCmd, `-ldflags`, `"-H=windowsgui"`)
