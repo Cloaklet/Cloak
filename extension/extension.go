@@ -35,14 +35,16 @@ func RevealInFileManager(path string) {
 // LocateGocryptfsBinary locates gocryptfs binary and returns its absolute path.
 // It first looks for the binary in the same directory as current running executable,
 // then falls back to anything found in PATH environment.
-func LocateGocryptfsBinary() (path string, err error) {
-	if executable, err := os.Executable(); err == nil {
-		path = filepath.Join(filepath.Dir(executable), "gocryptfs")
-		if _, err = os.Stat(path); os.IsNotExist(err) {
-			path, err = exec.LookPath("gocryptfs")
+func LocateGocryptfsBinary() (string, error) {
+	if executable, err := os.Executable(); err != nil {
+		return "", err
+	} else {
+		path := filepath.Join(filepath.Dir(executable), "gocryptfs")
+		if _, err = os.Stat(path); err != nil {
+			return exec.LookPath("gocryptfs")
 		}
+		return path, nil
 	}
-	return
 }
 
 // GetLogger creates a new zerolog logger with given string as vaule for `module` key.
