@@ -9,3 +9,6 @@ func revealPath(path string) {}
 func isFuseAvailable() bool {
 	return false
 }
+
+// TODO
+func locateLogDirectory() (string, error) {}

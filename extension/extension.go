@@ -9,9 +9,21 @@ import (
 	"time"
 )
 
+var ReleaseMode string
+
 func init() {
 	// Global zerolog settings
+	if ReleaseMode == "true" {
+		if logDir, err := locateLogDirectory(); err == nil {
+			logFile, err := os.OpenFile(filepath.Join(logDir, "Cloak.log"), os.O_WRONLY|os.O_CREATE, 0640)
+			if err == nil {
+				zlog.Logger = zlog.Output(logFile)
+				return
+			}
+		}
+	}
 	zlog.Logger = zlog.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+
 }
 
 // RevealInFileManager is a general function which calls platform-dependent implementations
@@ -42,4 +54,8 @@ func GetLogger(module string) zerolog.Logger {
 // IsFuseAvailable returns a bool value indicating FUSE ability of current OS.
 func IsFuseAvailable() bool {
 	return isFuseAvailable()
+}
+
+func GetAppDataDirectory() (string, error) {
+	return locateAppDataDirectory()
 }

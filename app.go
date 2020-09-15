@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Cloak/extension"
 	"Cloak/icons"
 	"Cloak/models"
 	"Cloak/server"
@@ -9,9 +10,17 @@ import (
 	"github.com/lopezator/migrator"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/browser"
+	"path/filepath"
 )
 
 var ReleaseMode string
+
+// A dumb debug logger for migrator
+type logPrinter struct{}
+
+func (l *logPrinter) Printf(f string, v ...interface{}) {
+	logger.Debug().Msgf(f, v...)
+}
 
 type App struct {
 	apiServer   *server.ApiServer
@@ -26,19 +35,22 @@ func (a *App) stop() {
 }
 
 func (a *App) Migrate() {
-	m, err := migrator.New(migrator.Migrations(
-		&migrator.Migration{
-			Name: "Create vaults table",
-			Func: func(tx *sql.Tx) error {
-				_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS vaults (
+	m, err := migrator.New(
+		migrator.WithLogger(&logPrinter{}),
+		migrator.Migrations(
+			&migrator.Migration{
+				Name: "Create vaults table",
+				Func: func(tx *sql.Tx) error {
+					_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS vaults (
     id INTEGER PRIMARY KEY,
     path TEXT NOT NULL UNIQUE,
     mountpoint TEXT UNIQUE
 );`)
-				return err
+					return err
+				},
 			},
-		},
-	))
+		),
+	)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to init migrations")
 	}
@@ -53,9 +65,16 @@ func (a *App) Migrate() {
 // NewApp constructs and returns a new App instance
 func NewApp() *App {
 	app := &App{releaseMode: ReleaseMode == "true"}
+	appDataDir, err := extension.GetAppDataDirectory()
+	if err != nil {
+		logger.Fatal().Err(err).
+			Str("appDataDir", appDataDir).
+			Msg("Failed to get application data directory")
+	} else {
+		logger.Info().Str("appDataDir", appDataDir).Msg("Determined application data directory")
+	}
 
-	var err error
-	app.db, err = sql.Open("sqlite3", "./test.db")
+	app.db, err = sql.Open("sqlite3", filepath.Join(appDataDir, "vaults.db"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to open vault database")
 	}
