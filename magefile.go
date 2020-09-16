@@ -3,30 +3,33 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 	"github.com/magefile/mage/sh"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 // Default target to run when none is specified
 // If not set, running mage will list available targets
 // var Default = Build
 
-type target struct {
-	goos   string
-	goarch string
-}
+const (
+	osKey = iota
+	archKey
+)
 
-func buildForTarget(t target) (output string, err error) {
+func buildForTarget(c context.Context) (output string, err error) {
 	os.RemoveAll(`rsrc.syso`)
 
-	env := map[string]string{}
-	if t.goos != "" && t.goarch != "" {
-		env["GOOS"] = t.goos
-		env["GOARCH"] = t.goarch
+	env := map[string]string{
+		"GOOS":   c.Value(osKey).(string),
+		"GOARCH": c.Value(archKey).(string),
 	}
 
 	executable := "cloak"
@@ -34,7 +37,7 @@ func buildForTarget(t target) (output string, err error) {
 		`go`, `build`,
 		`-ldflags`, `-X 'main.ReleaseMode=true' -X 'Cloak/extension.ReleaseMode=true'`,
 	}
-	if t.goos == "windows" {
+	if env["GOOS"] == "windows" {
 		executable += ".exe"
 		buildCmd = append(buildCmd, `-ldflags`, `"-H=windowsgui"`)
 		if err = sh.Run(`rsrc`, `-manifest`, `manifest.xml`, `-o`, `rsrc.syso`); err != nil {
@@ -48,7 +51,8 @@ func buildForTarget(t target) (output string, err error) {
 	}
 
 	var executableDir string
-	if t.goos == "darwin" {
+	switch env["GOOS"] {
+	case "darwin":
 		executableDir = filepath.Join(`Cloak.app`, `Contents`, `MacOS`)
 		if err = os.MkdirAll(executableDir, 0755); err != nil {
 			return
@@ -59,45 +63,41 @@ func buildForTarget(t target) (output string, err error) {
 		if err = sh.Copy(filepath.Join(executableDir, `..`, `Info.plist`), `Info.plist`); err != nil {
 			return
 		}
+		err = os.Rename("gocryptfs", filepath.Join(executableDir, "gocryptfs"))
 		output = `Cloak.app`
 		return
-	} else if t.goos == "windows" {
+	case "windows":
 		output = executable
 		return
-	} else if t.goos == "linux" {
-		// TODO
-		return
-	} else {
-		err = fmt.Errorf("unsupported OS: %s", t.goos)
+	default:
+		err = fmt.Errorf("unsupported OS: %s", env["GOOS"])
 		return
 	}
 }
 
 // Build build source code files into OS-specific executable
 func Build() error {
-	mg.Deps(InstallDeps, Clean, PackAssets)
-	for _, t := range []target{
-		{"darwin", "amd64"},
-		//{"windows", "amd64"},
-		//{"linux", "amd64"},
-	} {
-		fmt.Printf("Building for OS=%s ARCH=%s... ", t.goos, t.goarch)
-		if output, err := buildForTarget(t); err != nil {
-			return err
-		} else {
-			fmt.Printf("Bundle created: %s\n", output)
-		}
+	ctx := context.WithValue(context.TODO(), osKey, runtime.GOOS)
+	ctx = context.WithValue(ctx, archKey, runtime.GOARCH)
+	mg.CtxDeps(ctx, InstallDeps, Clean, PackAssets, DownloadGocryptfs)
+
+	fmt.Printf("Building for OS=%s ARCH=%s... ", runtime.GOOS, runtime.GOARCH)
+	if output, err := buildForTarget(ctx); err != nil {
+		fmt.Print(output)
+		return err
+	} else {
+		fmt.Printf("Bundle created: %s\n", output)
+		return nil
 	}
-	return nil
 }
 
 // PackAssets packs static files using `statik` tool
-func PackAssets() error {
+func PackAssets(_ context.Context) error {
 	return sh.Run(`statik`, `-src`, `web`, `-dest`, `.`, `-f`)
 }
 
 // InstallDeps installs extra tools required for building
-func InstallDeps() error {
+func InstallDeps(_ context.Context) error {
 	fmt.Println("Installing Deps...")
 	for toolBinary, toolPkg := range map[string]string{
 		"statik": "github.com/rakyll/statik",
@@ -116,10 +116,56 @@ func InstallDeps() error {
 }
 
 // Clean remove build artifacts from last build
-func Clean() {
+func Clean(c context.Context) error {
 	fmt.Println("Cleaning...")
-	os.RemoveAll("cloak")
-	os.RemoveAll("cloak.exe")
-	os.RemoveAll(`Cloak.app`)
+	goOs := c.Value(osKey).(string)
+	switch goOs {
+	case "windows":
+		os.RemoveAll("cloak.exe")
+	case "darwin":
+		os.RemoveAll(`Cloak.app`)
+		os.RemoveAll("cloak")
+	case "linux":
+		os.RemoveAll("cloak")
+	default:
+		return fmt.Errorf("Unsupported OS: %s", goOs)
+	}
+	os.RemoveAll(`gocryptfs`)
 	//os.RemoveAll(`rsrc.syso`)
+	return nil
+}
+
+// Download static build binary of gocryptfs
+func DownloadGocryptfs(c context.Context) error {
+	cloakVersion := "0.0.1"
+	gocryptfsVersion := "1.8.0"
+	goOs := c.Value(osKey).(string)
+	var downloadUrl string
+	switch goOs {
+	case "darwin", "linux":
+		downloadUrl = fmt.Sprintf(
+			"https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-%s-%s",
+			cloakVersion, gocryptfsVersion, goOs,
+		)
+	default:
+		return fmt.Errorf("Unsupported OS: %s", goOs)
+	}
+
+	// Download file
+	resp, err := http.Get(downloadUrl)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	binFile, err := os.Create("gocryptfs")
+	if err != nil {
+		return err
+	}
+	defer binFile.Close()
+
+	if _, err := io.Copy(binFile, resp.Body); err != nil {
+		return err
+	}
+	return os.Chmod("gocryptfs", 0755)
 }
