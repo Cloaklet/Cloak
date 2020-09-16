@@ -37,13 +37,6 @@ func buildForTarget(c context.Context) (output string, err error) {
 		`go`, `build`,
 		`-ldflags`, `-X 'main.ReleaseMode=true' -X 'Cloak/extension.ReleaseMode=true'`,
 	}
-	if env["GOOS"] == "windows" {
-		executable += ".exe"
-		buildCmd = append(buildCmd, `-ldflags`, `"-H=windowsgui"`)
-		if err = sh.Run(`rsrc`, `-manifest`, `manifest.xml`, `-o`, `rsrc.syso`); err != nil {
-			return
-		}
-	}
 	buildCmd = append(buildCmd, `-o`, executable)
 
 	if err = sh.RunWith(env, buildCmd[0], buildCmd[1:]...); err != nil {
@@ -66,7 +59,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 		err = os.Rename("gocryptfs", filepath.Join(executableDir, "gocryptfs"))
 		output = `Cloak.app`
 		return
-	case "windows":
+	case "linux":
 		output = executable
 		return
 	default:
@@ -120,8 +113,6 @@ func Clean(c context.Context) error {
 	fmt.Println("Cleaning...")
 	goOs := c.Value(osKey).(string)
 	switch goOs {
-	case "windows":
-		os.RemoveAll("cloak.exe")
 	case "darwin":
 		os.RemoveAll(`Cloak.app`)
 		os.RemoveAll("cloak")
