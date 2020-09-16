@@ -1,4 +1,4 @@
-//+build !darwin
+//+build !darwin,!linux
 
 package extension
 
@@ -11,4 +11,6 @@ func isFuseAvailable() bool {
 }
 
 // TODO
-func locateLogDirectory() (string, error) {}
+func locateLogDirectory() (string, error) {
+	return "", fmt.Errorf("platform not supported")
+}
