@@ -420,6 +420,11 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		}
 
 		// Respond
+		logger.Debug().
+			Int64("vaultId", vaultId).
+			Str("vaultPath", vault.Path).
+			Str("mountPoint", *vault.MountPoint).
+			Msg("Vault unlocked")
 		return c.JSON(http.StatusOK, echo.Map{
 			"code":  ERR_CODE_OK,
 			"msg":   ERR_MSG_OK,
@@ -534,6 +539,10 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 			})
 		} else {
 			// Deleted
+			logger.Debug().
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Msg("Vault removed. It is no longer managed by Cloak.")
 			return c.JSON(http.StatusOK, echo.Map{
 				"code": ERR_CODE_OK,
 				"msg":  ERR_MSG_OK,
@@ -826,5 +835,3 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 		"items": subPathItems,
 	})
 }
-
-//func (s *ApiServer) CreateVault(c echo.Context) error {}
