@@ -19,11 +19,11 @@
           <div class="p-2" v-else>
             <div v-if="mode === 'create'">
               <FileSelectionModal v-if="showDirSelection"
-                                    mode="directory"
-                                    title="Select where to store this vault"
-                                    ok-btn="Select"
-                                    @close="showDirSelection = false"
-                                    @selected="setCreateVaultDir"/>
+                                  mode="directory"
+                                  title="Select where to store this vault"
+                                  ok-btn="Select"
+                                  @close="showDirSelection = false"
+                                  @selected="setCreateVaultDir"/>
               <div class="form-group">
                 <label for="create-vault-name" class="form-label">Choose a name for the new vault</label>
                 <input type="text"
@@ -63,11 +63,11 @@
             </div>
             <div v-if="mode === 'add'">
               <FileSelectionModal v-if="showFileSelection"
-                                    mode="file"
-                                    title="Select the gocryptfs.conf file inside target vault"
-                                    ok-btn="Open"
-                                    @close="showFileSelection = false"
-                                    @selected="setAddVaultFile"/>
+                                  mode="file"
+                                  title="Select the gocryptfs.conf file inside target vault"
+                                  ok-btn="Open"
+                                  @close="showFileSelection = false"
+                                  @selected="setAddVaultFile"/>
               <div class="form-group">
                 <label for="add-vault-file" class="form-label">
                   Choose the <code>gocryptfs.conf</code> file of your existing vault
@@ -139,7 +139,7 @@ export default {
     close() {
       this.$emit('close')
     },
-    requestCreateVault() { // FIXME
+    requestCreateVault() {
       this.$emit('create-vault-request', {
         path: this.createVaultDir,
         name: this.createVaultName,
