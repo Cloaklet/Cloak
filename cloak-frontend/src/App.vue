@@ -5,7 +5,7 @@
         <AppHeader/>
         <div class="columns col-gapless card-body p-0">
           <VaultList/>
-<!--          <VaultInfoPanel/>-->
+          <VaultInfoPanel/>
         </div>
       </div>
     </div>
@@ -16,15 +16,15 @@
 <script>
 import 'spectre.css';
 import 'remixicon/fonts/remixicon.css'
-import Alert from '@/components/Alert.vue';
-import VaultList from '@/components/VaultList.vue';
-import AppHeader from "@/components/AppHeader";
-// import VaultInfoPanel from "@/components/VaultInfoPanel";
+import Alert from '@/components/Alert.vue'
+import VaultList from '@/components/VaultList.vue'
+import AppHeader from "@/components/AppHeader"
+import VaultInfoPanel from "@/components/VaultInfoPanel"
 
 export default {
   name: 'App',
   components: {
-    // VaultInfoPanel,
+    VaultInfoPanel,
     AppHeader,
     Alert,
     VaultList

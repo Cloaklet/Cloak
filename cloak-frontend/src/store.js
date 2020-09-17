@@ -64,6 +64,14 @@ export default new Vuex.Store({
                 state: payload.state,
                 selected: false,
             })
+        },
+        setVaultState(state, payload) {
+            for (let v of state.vaults) {
+                if (v.id === payload.vaultId) {
+                    v.state = payload.state
+                    break
+                }
+            }
         }
     },
     actions: {
@@ -122,6 +130,48 @@ export default new Vuex.Store({
                     return commit('setError', resp.data)
                 }
                 commit('addVault', resp.data.item)
+            }).catch(err => {
+                return commit('setError', {code: -1, msg: err.message}) // FIXME
+            })
+        },
+        revealMountPointForVault({commit}, payload) {
+            axios.post(`${API}/api/vault/${payload.vaultId}`, {
+                op: 'reveal'
+            }).then(resp => {
+                if (resp.data.code !== 0) {
+                    return commit('setError', resp.data)
+                }
+            }).catch(err => {
+                return commit('setError', {code: -1, msg: err.message}) // FIXME
+            })
+        },
+        lockVault({commit}, payload) {
+            axios.post(`${API}/api/vault/${payload.vaultId}`, {
+                op: 'lock'
+            }).then(resp => {
+                if (resp.data.code !== 0) {
+                    return commit('setError', resp.data)
+                }
+                commit('setVaultState', {
+                    vaultId: payload.vaultId,
+                    state: resp.data.state
+                })
+            }).catch(err => {
+                return commit('setError', {code: -1, msg: err.message}) // FIXME
+            })
+        },
+        unlockVault({commit}, payload) {
+            axios.post(`${API}/api/vault/${payload.vaultId}`, {
+                op: 'unlock',
+                password: payload.password
+            }).then(resp => {
+                if (resp.data.code !== 0) {
+                    return commit('setError', resp.data)
+                }
+                commit('setVaultState', {
+                    vaultId: payload.vaultId,
+                    state: resp.data.state
+                })
             }).catch(err => {
                 return commit('setError', {code: -1, msg: err.message}) // FIXME
             })

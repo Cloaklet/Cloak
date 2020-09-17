@@ -1,44 +1,72 @@
 <template>
   <div class="column col-8 info-panel">
-    <div class="empty" v-if="!vault">
+    <div class="empty" v-if="!selectedVault">
       <p class="empty-title h5">No vault selected</p>
       <p class="empty-subtitle">Click on a vault on the left to show its details</p>
     </div>
     <div class="bg-gray vault-info" v-else>
       <div class="tile tile-centered">
         <div class="tile-icon text-center text-light bg-primary s-circle">
-          <i class="ri-lock-unlock-fill ri-lg" v-if="vault.state === 'unlocked'"></i>
+          <i class="ri-lock-unlock-fill ri-lg" v-if="selectedVault.state === 'unlocked'"></i>
           <i class="ri-lock-fill ri-lg" v-else></i>
         </div>
         <div class="tile-content p-relative">
-          <div class="tile-title h5">{{ vault.name }}</div>
-          <small class="tile-subtitle text-gray">{{ vault.path }}</small>
+          <div class="tile-title h5">{{ selectedVault.name }}</div>
+          <small class="tile-subtitle text-gray">{{ selectedVault.path }}</small>
           <span class="chip text-uppercase text-bold text-light p-absolute"
-                :class="{ 'bg-primary': vault.state === 'unlocked' }">{{ vault.state }}</span>
+                :class="{ 'bg-primary': selectedVault.state === 'unlocked' }">{{ selectedVault.state }}</span>
         </div>
       </div><!--vault info end-->
-      <div class="vault-operations text-center" v-if="vault.state === 'unlocked'">
+      <div class="vault-operations text-center" v-if="selectedVault.state === 'unlocked'">
         <div class="text-center">
           <button class="btn btn-primary btn-lg"
-                  @click="revealMountpoint(vault.id)"><i class="ri-folder-open-fill"></i> Reveal Drive</button>
+                  @click="revealMountPointForVault({vaultId: selectedVault.id})">
+            <i class="ri-folder-open-fill"></i> Reveal Drive
+          </button>
         </div>
         <div class="text-center mt-2">
           <button class="btn btn-sm"
-                  @click="lockVault(vault.id)"><i class="ri-key-2-fill"></i> Lock</button>
+                  @click="lockVault({vaultId: selectedVault.id})">
+            <i class="ri-key-2-fill"></i> Lock
+          </button>
         </div>
       </div><!--vault operation buttons end-->
       <div class="vault-operations text-center" v-else>
         <button class="btn btn-primary btn-lg"
-                @click="showUnlock = true"><i class="ri-key-2-fill"></i> Unlock...</button>
+                @click="showUnlock = true">
+          <i class="ri-key-2-fill"></i> Unlock...
+        </button>
       </div>
     </div>
+    <VaultUnlockModal v-if="showUnlock"
+                      @close="showUnlock = false"
+                      @unlock-vault-request="unlockVault"/>
   </div>
 </template>
 
 <script>
+import {mapActions, mapGetters} from 'vuex'
+import VaultUnlockModal from "@/components/VaultUnlockModal";
+
 export default {
   name: "VaultInfoPanel",
-  props: ['vault']
+  components: {VaultUnlockModal},
+  data: function () {
+    return {
+      showUnlock: false
+    }
+  },
+  computed: {
+    ...mapGetters(['selectedVault'])
+  },
+  methods: {
+    ...mapActions(['revealMountPointForVault', 'lockVault']),
+    unlockVault(payload) {
+      this.$store.dispatch('unlockVault', payload).then(() => {
+        this.showUnlock = false
+      })
+    }
+  }
 }
 </script>
 
