@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/xattr"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog"
@@ -170,7 +171,26 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 	  - op=reveal: reveal mountpoint in file manager, only available if vault is unlocked
 	- DELETE /vault/N: delete a vault from Cloak. Files are reserved on disk.
 	*/
-	apis := server.echo.Group("/api", server.CheckRuntimeDeps)
+	var apis *echo.Group
+	if !releaseMode {
+		logger.Warn().
+			Bool("releaseMode", releaseMode).
+			Msg("Running in DEV mode, CORS enabled")
+		server.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{"*"},
+			AllowMethods: []string{
+				http.MethodOptions,
+				http.MethodGet,
+				http.MethodHead,
+				http.MethodPut,
+				http.MethodPatch,
+				http.MethodPost,
+				http.MethodDelete,
+			},
+		}))
+	}
+	apis = server.echo.Group("/api", server.CheckRuntimeDeps)
+
 	{
 		apis.GET("/vaults", server.ListVaults)
 		apis.DELETE("/vault/:id", server.RemoveVault)
