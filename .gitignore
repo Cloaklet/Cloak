@@ -21,7 +21,7 @@
 
 # Frontend project ignore rules
 node_modules
-/dist
+dist
 
 # local env files
 .env.local

@@ -86,7 +86,15 @@ func Build() error {
 
 // PackAssets packs static files using `statik` tool
 func PackAssets(_ context.Context) error {
-	return sh.Run(`statik`, `-src`, `web`, `-dest`, `.`, `-f`)
+	npmBuild := exec.Command(`npm`, `run`, `build`)
+	npmBuild.Dir = "frontend"
+	output, err := npmBuild.CombinedOutput()
+	fmt.Printf("%s\n", output)
+	if err != nil {
+		return err
+	}
+
+	return sh.Run(`statik`, `-src`, `frontend/dist`, `-dest`, `.`, `-f`)
 }
 
 // InstallDeps installs extra tools required for building

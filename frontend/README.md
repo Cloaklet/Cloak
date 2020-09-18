@@ -1,4 +1,4 @@
-# cloak-frontend
+# Cloak
 
 ## Project setup
 ```

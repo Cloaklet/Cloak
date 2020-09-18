@@ -149,7 +149,7 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 	// Load files from disk when we're not built for release
 	if !releaseMode {
 		logger.Info().Msg("Running in DEV mode")
-		server.echo.Static("/", "./web")
+		server.echo.Static("/", "./frontend/dist")
 	} else { // Load files from embedded FS when in release mode
 		logger.Debug().Msg("Running in RELEASE mode")
 		embedFs, err := fs.New()
@@ -171,7 +171,6 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 	  - op=reveal: reveal mountpoint in file manager, only available if vault is unlocked
 	- DELETE /vault/N: delete a vault from Cloak. Files are reserved on disk.
 	*/
-	var apis *echo.Group
 	if !releaseMode {
 		logger.Warn().
 			Bool("releaseMode", releaseMode).
@@ -189,7 +188,7 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 			},
 		}))
 	}
-	apis = server.echo.Group("/api", server.CheckRuntimeDeps)
+	apis := server.echo.Group("/api", server.CheckRuntimeDeps)
 
 	{
 		apis.GET("/vaults", server.ListVaults)

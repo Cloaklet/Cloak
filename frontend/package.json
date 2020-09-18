@@ -1,5 +1,5 @@
 {
-  "name": "cloak-frontend",
+  "name": "Cloak",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -22,6 +22,7 @@
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
+    "fontmin-webpack": "^2.0.7",
     "vue-template-compiler": "^2.6.11"
   },
   "eslintConfig": {

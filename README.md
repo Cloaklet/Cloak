@@ -37,6 +37,7 @@ Drop an official binary from [gocryptfs release](https://github.com/rfjakob/gocr
 
 - `gocryptfs` requires `FUSE` to function. For macOS please install `OSXFUSE`.
 - Windows is not supported, because `gocryptfs` does not work on Windows.
+- Avoid commiting `statik` module because it contains large blob of files produced by the frontend project.
 
 # License
 
