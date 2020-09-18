@@ -17,6 +17,7 @@ func init() {
 		if logDir, err := locateLogDirectory(); err == nil {
 			logFile, err := os.OpenFile(filepath.Join(logDir, "Cloak.log"), os.O_WRONLY|os.O_CREATE, 0640)
 			if err == nil {
+				_ = logFile.Truncate(0)
 				zlog.Logger = zlog.Output(logFile)
 				return
 			}
