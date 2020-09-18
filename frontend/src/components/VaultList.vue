@@ -27,6 +27,8 @@
       <button class="btn btn-lg bg-gray h6 text-normal tooltip"
               data-tooltip="Remove Vault"
               :disabled="!selectedVault"
+              :class="{ loading: $wait.is('removing vault') }"
+              v-wait:disabled="'removing vault'"
               @click="removeVault({vaultId: selectedVault.id})">➖</button>
     </div>
     <AddVaultModal v-if="showAddVaultModal"
@@ -37,8 +39,9 @@
 </template>
 
 <script>
-import {mapActions, mapGetters, mapMutations} from 'vuex'
+import {mapGetters, mapMutations} from 'vuex'
 import AddVaultModal from './AddVaultModal'
+import {mapWaitingActions} from 'vue-wait'
 
 export default {
   name: "VaultList",
@@ -55,15 +58,19 @@ export default {
   },
   methods: {
     ...mapMutations(['selectVault']),
-    ...mapActions(['removeVault']),
+    ...mapWaitingActions({
+      removeVault: 'removing vault'
+    }),
     addVault(payload) {
       this.$store.dispatch('addVault', payload).then(() => {
         this.showAddVaultModal = false
+        this.$wait.end('adding vault')
       })
     },
     createVault(payload) {
       this.$store.dispatch('createVault', payload).then(() => {
         this.showAddVaultModal = false
+        this.$wait.end('creating vault')
       })
     }
   },

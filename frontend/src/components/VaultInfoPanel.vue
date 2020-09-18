@@ -64,6 +64,7 @@ export default {
     unlockVault(payload) {
       this.$store.dispatch('unlockVault', payload).then(() => {
         this.showUnlock = false
+        this.$wait.end('unlocking')
       })
     }
   }

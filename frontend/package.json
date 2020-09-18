@@ -13,6 +13,7 @@
     "remixicon": "^2.5.0",
     "spectre.css": "^0.5.9",
     "vue": "^2.6.11",
+    "vue-wait": "^1.4.8",
     "vuex": "^3.5.1"
   },
   "devDependencies": {
