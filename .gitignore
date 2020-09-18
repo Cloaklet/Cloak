@@ -18,6 +18,7 @@
 # Other files
 .DS_Store
 *.db
+statik/statik.go
 
 # Frontend project ignore rules
 node_modules
