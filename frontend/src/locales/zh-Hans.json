@@ -1,0 +1,74 @@
+{
+  "alert": {
+    "errcode": "(错误码: {code})"
+  },
+  "list": {
+    "add": {
+      "add": "添加已有的加密库",
+      "create": "创建新的加密库",
+      "select_file": {
+        "label": "选择加密库中的 {filename} 文件",
+        "title": "选择加密库中的 gocryptfs.conf 文件"
+      },
+      "title": "@:(list.buttons.add)"
+    },
+    "buttons": {
+      "add": "添加加密库",
+      "remove": "移除加密库"
+    },
+    "create": {
+      "name": {
+        "label": "为新的加密库选择一个名字",
+        "placeholder": "加密库的名字"
+      },
+      "password": {
+        "label": "为新的加密库选择一个密码",
+        "repeat": {
+          "label": "再次输入加密库的密码",
+          "notmatch": "两次输入的密码不一致"
+        }
+      },
+      "path": {
+        "label": "选择加密库存放的位置",
+        "placeholder": "加密库存放位置"
+      }
+    },
+    "novault": {
+      "subtitle": "点击「@:(list.buttons.add)」来创建新加密库或添加已有的加密库",
+      "title": "没有加密库"
+    }
+  },
+  "locked": "未解密",
+  "misc": {
+    "add": "添加",
+    "back": "返回",
+    "cancel": "取消",
+    "create": "创建",
+    "open": "打开",
+    "select": "选择",
+    "unlock": "解密"
+  },
+  "panel": {
+    "buttons": {
+      "lock": "锁住",
+      "reveal": "查看解密位置",
+      "unlock": "解密..."
+    },
+    "notselected": {
+      "subtitle": "在左侧选中一个加密库来查看其信息",
+      "title": "没有选中任何加密库"
+    },
+    "unlock": {
+      "password": {
+        "label": "输入「{vaultname}」的密码"
+      }
+    }
+  },
+  "select": {
+    "default_title": "选择一个目录或文件",
+    "empty": "此处没有任何内容...",
+    "file": "选择...",
+    "gotoparent": "返回上层"
+  },
+  "unlocked": "已解密"
+}

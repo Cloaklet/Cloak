@@ -16,7 +16,7 @@
                 <div class="tile tile-centered">
                   <div class="tile-icon"><i class="ri-arrow-up-line"></i></div>
                   <div class="tile-content">
-                    <div class="tile-title h6 text-normal">Go to parent directory</div>
+                    <div class="tile-title h6 text-normal" v-t="'select.gotoparent'"></div>
                   </div>
                 </div>
               </a>
@@ -35,7 +35,7 @@
               </a>
             </div>
             <div class="empty p-2" v-if="!items.length">
-              <p class="empty-subtitle">Nothing here...</p>
+              <p class="empty-subtitle" v-t="'select.empty'"></p>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@
         <button class="btn btn-primary"
                 :disabled="!canFinishSelection"
                 @click="selectItem">{{ okBtn }}</button>
-        <button class="btn ml-1" aria-label="Close" @click="close">Cancel</button>
+        <button class="btn ml-1" aria-label="Close" @click="close" v-t="'misc.cancel'"></button>
       </div>
     </div>
   </div>
@@ -71,11 +71,11 @@ export default {
     },
     title: {
       type: String,
-      default: `Select an item`
+      default: this.$t('select.default_title')
     },
     okBtn: {
       type: String,
-      default: "Select"
+      default: this.$t('misc.select')
     }
   },
   data: function () {

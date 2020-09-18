@@ -11,7 +11,9 @@
       <div class="modal-body">
         <div class="content">
           <div class="form-group">
-            <label for="vault-password" class="form-label">Enter password for "{{ selectedVault.name }}"</label>
+            <i18n tag="label" for="vault-password" class="form-label" path="'panel.unlock.password.label'">
+              <template #vaultname>{{ selectedVault.name }}</template>
+            </i18n>
             <input type="password"
                    class="form-input"
                    id="vault-password"
@@ -27,8 +29,9 @@
                 :class="{ loading: $wait.is('unlocking') }"
                 v-wait:disabled="'unlocking'"
                 v-wait:click.start="'unlocking'"
-                @click="requestUnlockVault">Unlock</button>
-        <button class="btn ml-1" aria-label="Close" @click="close">Cancel</button>
+                @click="requestUnlockVault"
+                v-t="'misc.unlock'"></button>
+        <button class="btn ml-1" aria-label="Close" @click="close" v-t="'misc.cancel'"></button>
       </div>
     </div>
   </div>

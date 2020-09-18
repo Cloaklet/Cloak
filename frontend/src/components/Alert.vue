@@ -4,7 +4,9 @@
        v-show="hasAlert">
     <button class="btn btn-clear float-right" v-if="isError" @click="closeAlert"></button>
     <p>{{ $store.state.error.msg }}
-      <span class="pl-1" v-if="isError">(error code: {{ errCode }})</span>
+      <i18n tag="span" class="pl-1" v-if="isError" path="alert.errcode">
+        <template #code>{{ errCode }})</template>
+      </i18n>
     </p>
   </div>
 </template>

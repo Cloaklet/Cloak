@@ -1,8 +1,8 @@
 <template>
   <div class="column col-8 info-panel">
     <div class="empty" v-if="!selectedVault">
-      <p class="empty-title h5">No vault selected</p>
-      <p class="empty-subtitle">Click on a vault on the left to show its details</p>
+      <p class="empty-title h5" v-t="'panel.notselected.title'"></p>
+      <p class="empty-subtitle" v-t="'panel.notselected.subtitle'"></p>
     </div>
     <div class="bg-gray vault-info" v-else>
       <div class="tile tile-centered">
@@ -14,27 +14,28 @@
           <div class="tile-title h5">{{ selectedVault.name }}</div>
           <small class="tile-subtitle text-gray">{{ selectedVault.path }}</small>
           <span class="chip text-uppercase text-bold text-light p-absolute"
-                :class="{ 'bg-primary': selectedVault.state === 'unlocked' }">{{ selectedVault.state }}</span>
+                :class="{ 'bg-primary': selectedVault.state === 'unlocked' }"
+                v-t="selectedVault.state"></span>
         </div>
       </div><!--vault info end-->
       <div class="vault-operations text-center" v-if="selectedVault.state === 'unlocked'">
         <div class="text-center">
           <button class="btn btn-primary btn-lg"
                   @click="revealMountPointForVault({vaultId: selectedVault.id})">
-            <i class="ri-folder-open-fill"></i> Reveal Drive
+            <i class="ri-folder-open-fill"></i> {{ $t('panel.buttons.reveal') }}
           </button>
         </div>
         <div class="text-center mt-2">
           <button class="btn btn-sm"
                   @click="lockVault({vaultId: selectedVault.id})">
-            <i class="ri-key-2-fill"></i> Lock
+            <i class="ri-key-2-fill"></i> {{ $t('panel.buttons.lock') }}
           </button>
         </div>
       </div><!--vault operation buttons end-->
       <div class="vault-operations text-center" v-else>
         <button class="btn btn-primary btn-lg"
                 @click="showUnlock = true">
-          <i class="ri-key-2-fill"></i> Unlock...
+          <i class="ri-key-2-fill"></i> {{ $t('panel.buttons.unlock') }}
         </button>
       </div>
     </div>

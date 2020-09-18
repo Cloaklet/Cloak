@@ -2,8 +2,8 @@
   <div class="column col-4 p-relative">
     <div class="menu p-0 vault-list">
       <div class="empty" v-if="!vaultsCount">
-        <p class="empty-title h5">No vault yet</p>
-        <p class="empty-subtitle">Click on the add button to add an existing vault or create a new one</p>
+        <p class="empty-title h5" v-t="'list.novault.title'"></p>
+        <p class="empty-subtitle" v-t="'list.novault.subtitle'"></p>
       </div>
       <div class="menu-item mt-0" v-for="vault in $store.state.vaults" :key="vault.id">
         <a :class="{ active: vault === selectedVault }" @click="selectVault({vaultId: vault.id})">
@@ -22,10 +22,10 @@
     </div><!--list end-->
     <div class="btn-group btn-group-block p-absolute vault-list-buttons">
       <button class="btn btn-lg bg-gray h6 text-normal tooltip"
-              data-tooltip="Add Vault"
+              :data-tooltip="$t('list.buttons.add')"
               @click="showAddVaultModal = true">➕</button>
       <button class="btn btn-lg bg-gray h6 text-normal tooltip"
-              data-tooltip="Remove Vault"
+              :data-tooltip="$t('list.buttons.remove')"
               :disabled="!selectedVault"
               :class="{ loading: $wait.is('removing vault') }"
               v-wait:disabled="'removing vault'"

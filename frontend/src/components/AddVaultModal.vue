@@ -6,46 +6,58 @@
         <a class="btn btn-clear float-right"
            aria-label="Close"
            @click="close"></a>
-        <div class="modal-title h5">Add Vault</div>
+        <div class="modal-title h5" v-t="'list.add.title'"></div>
       </div>
       <div class="modal-body p-0 bg-gray">
         <div class="content m-2" :class="{ 'text-center': !mode }">
           <div class="p-2" v-if="!mode">
             <button class="btn btn-block my-2"
-                    @click="mode = 'create'"><i class="ri-magic-line"></i> Create New Vault</button>
+                    @click="mode = 'create'">
+              <i class="ri-magic-line"></i> {{ $t('list.add.create') }}
+            </button>
             <button class="btn btn-block my-2"
-                    @click="mode = 'add'"><i class="ri-folder-open-line"></i> Add Existing Vault</button>
+                    @click="mode = 'add'">
+              <i class="ri-folder-open-line"></i> {{ $t('list.add.add') }}
+            </button>
           </div>
           <div class="p-2" v-else>
             <div v-if="mode === 'create'">
               <FileSelectionModal v-if="showDirSelection"
                                   mode="directory"
-                                  title="Select where to store this vault"
-                                  ok-btn="Select"
+                                  :title="$t('list.create.path.label')"
+                                  :ok-btn="$t('misc.select')"
                                   @close="showDirSelection = false"
                                   @selected="setCreateVaultDir"/>
               <div class="form-group">
-                <label for="create-vault-name" class="form-label">Choose a name for the new vault</label>
+                <label for="create-vault-name"
+                       class="form-label"
+                       v-t="'list.create.name.label'"></label>
                 <input type="text"
                        class="form-input"
                        id="create-vault-name"
-                       placeholder="Vault Name"
+                       :placeholder="$t('list.create.name.placeholder')"
                        v-model="createVaultName">
               </div>
               <div class="form-group">
-                <label for="create-vault-directory" class="form-label">Choose where to store this vault</label>
+                <label for="create-vault-directory"
+                       class="form-label"
+                       v-t="'list.create.path.label'"></label>
                 <div class="input-group">
                   <input type="text"
                          class="form-input"
                          id="create-vault-directory"
-                         placeholder="Vault Location"
+                         :placeholder="$t('list.create.path.placeholder')"
                          v-model="createVaultDir"
                          disabled>
-                  <button class="btn input-group-btn" @click="showDirSelection = true">Choose...</button>
+                  <button class="btn input-group-btn"
+                          @click="showDirSelection = true"
+                          v-t="'select.file'"></button>
                 </div>
               </div>
               <div class="form-group">
-                <label for="create-vault-password" class="form-label">Choose a password for the new vault</label>
+                <label for="create-vault-password"
+                       class="form-label"
+                       v-t="'list.create.password.label'"></label>
                 <input type="password"
                        class="form-input"
                        id="create-vault-password"
@@ -53,25 +65,28 @@
               </div>
               <div class="form-group" :class="{ 'has-error': !passwordMatch }">
                 <label for="create-vault-password-repeat"
-                       class="form-label">Type the vault password again</label>
+                       class="form-label"
+                       v-t="'list.create.password.repeat.label'"></label>
                 <input type="password"
                        class="form-input"
                        id="create-vault-password-repeat"
                        v-model="createVaultPasswordCheck">
-                <p class="form-input-hint" v-if="!passwordMatch">Password does not match</p>
+                <p class="form-input-hint"
+                   v-if="!passwordMatch"
+                   v-t="'list.create.password.repeat.notmatch'"></p>
               </div>
             </div>
             <div v-if="mode === 'add'">
               <FileSelectionModal v-if="showFileSelection"
                                   mode="file"
-                                  title="Select the gocryptfs.conf file inside target vault"
-                                  ok-btn="Open"
+                                  :title="$t('list.add.select_file.title')"
+                                  :ok-btn="$t('misc.open')"
                                   @close="showFileSelection = false"
                                   @selected="setAddVaultFile"/>
               <div class="form-group">
-                <label for="add-vault-file" class="form-label">
-                  Choose the <code>gocryptfs.conf</code> file of your existing vault
-                </label>
+                <i18n tag="label" for="add-vault-file" class="form-label" path="list.add.select_file.label">
+                  <code #filename>gocryptfs.conf</code>
+                </i18n>
                 <div class="input-group">
                   <input type="text"
                          class="form-input"
@@ -79,7 +94,9 @@
                          placeholder="Vault Config File"
                          v-model="addVaultFile"
                          disabled>
-                  <button class="btn input-group-btn" @click="showFileSelection = true">Choose...</button>
+                  <button class="btn input-group-btn"
+                          @click="showFileSelection = true"
+                          v-t="'select.file'"></button>
                 </div>
               </div>
             </div>
@@ -87,21 +104,23 @@
         </div>
       </div>
       <div class="modal-footer px-0">
-        <button class="btn float-left" v-if="mode" @click="mode = null">Back</button>
+        <button class="btn float-left" v-if="mode" @click="mode = null" v-t="'misc.back'"></button>
         <button class="btn btn-primary float-right"
                 v-if="mode === 'create'"
                 :class="{ loading: $wait.is('creating vault') }"
                 v-wait:disabled="'creating vault'"
                 v-wait:click.start="'creating vault'"
                 :disabled="!canCreate"
-                @click="requestCreateVault">Create</button>
+                @click="requestCreateVault"
+                v-t="'misc.create'"></button>
         <button class="btn btn-primary float-right"
                 v-if="mode === 'add'"
                 :class="{ loading: $wait.is('adding vault') }"
                 v-wait:disabled="'adding vault'"
                 v-wait:click.start="'adding vault'"
                 :disabled="!addVaultFile"
-                @click="requestAddVault">Add</button>
+                @click="requestAddVault"
+                v-t="'misc.add'"></button>
       </div>
     </div>
   </div>

@@ -1,0 +1,74 @@
+{
+  "alert": {
+    "errcode": "(error code: {code})"
+  },
+  "list": {
+    "add": {
+      "add": "Add Existing Vault",
+      "create": "Create New Vault",
+      "select_file": {
+        "label": "Choose the {filename} file of your existing vault",
+        "title": "Select the gocryptfs.conf file inside target vault"
+      },
+      "title": "@:(list.buttons.add)"
+    },
+    "buttons": {
+      "add": "Add Vault",
+      "remove": "Remove Vault"
+    },
+    "create": {
+      "name": {
+        "label": "Choose a name for the new vault",
+        "placeholder": "Vault Name"
+      },
+      "password": {
+        "label": "Choose a password for the new vault",
+        "repeat": {
+          "label": "Type the vault password again",
+          "notmatch": "Password does not match"
+        }
+      },
+      "path": {
+        "label": "Choose where to store this vault",
+        "placeholder": "Vault Location"
+      }
+    },
+    "novault": {
+      "subtitle": "Click on the add button to add an existing vault or create a new one",
+      "title": "No vault yet"
+    }
+  },
+  "locked": "locked",
+  "misc": {
+    "add": "Add",
+    "back": "Back",
+    "cancel": "Cancel",
+    "create": "Create",
+    "open": "Open",
+    "select": "Select",
+    "unlock": "Unlock"
+  },
+  "panel": {
+    "buttons": {
+      "lock": "Lock",
+      "reveal": "Reveal Drive",
+      "unlock": "Unlock..."
+    },
+    "notselected": {
+      "subtitle": "Click on a vault on the left to show its details",
+      "title": "No vault selected"
+    },
+    "unlock": {
+      "password": {
+        "label": "Enter password for \"{vaultname}\""
+      }
+    }
+  },
+  "select": {
+    "default_title": "Select an item",
+    "empty": "Nothing here...",
+    "file": "Choose...",
+    "gotoparent": "Go to parent directory"
+  },
+  "unlocked": "unlocked"
+}
