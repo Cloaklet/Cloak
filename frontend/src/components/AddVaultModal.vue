@@ -84,8 +84,10 @@
                                   @close="showFileSelection = false"
                                   @selected="setAddVaultFile"/>
               <div class="form-group">
-                <i18n tag="label" for="add-vault-file" class="form-label" path="list.add.select_file.label">
-                  <code #filename>gocryptfs.conf</code>
+                <i18n tag="label" for="add-vault-file" class="form-label" path="'list.add.select_file.label'">
+                  <template #filename>
+                    <code>gocryptfs.conf</code>
+                  </template>
                 </i18n>
                 <div class="input-group">
                   <input type="text"

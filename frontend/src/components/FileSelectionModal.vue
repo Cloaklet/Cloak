@@ -71,11 +71,15 @@ export default {
     },
     title: {
       type: String,
-      default: this.$t('select.default_title')
+      default: function() {
+        return this.$t('select.default_title')
+      }
     },
     okBtn: {
       type: String,
-      default: this.$t('misc.select')
+      default: function() {
+        return this.$t('misc.select')
+      }
     }
   },
   data: function () {
