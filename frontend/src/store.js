@@ -76,7 +76,7 @@ export default new Vuex.Store({
     },
     actions: {
         loadVaults ({commit}) {
-            axios.get(`${API}/api/vaults`).then(resp => {
+            return axios.get(`${API}/api/vaults`).then(resp => {
                 if (resp.data.code !== 0) {
                     return commit('setError', resp.data)
                 }
@@ -97,7 +97,7 @@ export default new Vuex.Store({
             })
         },
         removeVault({commit}, payload) {
-            axios.delete(`${API}/api/vault/${payload.vaultId}`).then(resp => {
+            return axios.delete(`${API}/api/vault/${payload.vaultId}`).then(resp => {
                 if (resp.data.code !== 0) {
                     return commit('setError', resp.data)
                 }
@@ -107,7 +107,7 @@ export default new Vuex.Store({
             })
         },
         addVault({commit}, payload) {
-            axios.post(`${API}/api/vaults`, {
+            return axios.post(`${API}/api/vaults`, {
                 op: 'add',
                 path: payload.path
             }).then(resp => {
@@ -120,7 +120,7 @@ export default new Vuex.Store({
             })
         },
         createVault({commit}, payload) {
-            axios.post(`${API}/api/vaults`, {
+            return axios.post(`${API}/api/vaults`, {
                 op: 'create',
                 path: payload.path,
                 name: payload.name,
@@ -135,7 +135,7 @@ export default new Vuex.Store({
             })
         },
         revealMountPointForVault({commit}, payload) {
-            axios.post(`${API}/api/vault/${payload.vaultId}`, {
+            return axios.post(`${API}/api/vault/${payload.vaultId}`, {
                 op: 'reveal'
             }).then(resp => {
                 if (resp.data.code !== 0) {
@@ -146,7 +146,7 @@ export default new Vuex.Store({
             })
         },
         lockVault({commit}, payload) {
-            axios.post(`${API}/api/vault/${payload.vaultId}`, {
+            return axios.post(`${API}/api/vault/${payload.vaultId}`, {
                 op: 'lock'
             }).then(resp => {
                 if (resp.data.code !== 0) {
@@ -161,7 +161,7 @@ export default new Vuex.Store({
             })
         },
         unlockVault({commit}, payload) {
-            axios.post(`${API}/api/vault/${payload.vaultId}`, {
+            return axios.post(`${API}/api/vault/${payload.vaultId}`, {
                 op: 'unlock',
                 password: payload.password
             }).then(resp => {
