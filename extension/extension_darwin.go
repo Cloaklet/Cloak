@@ -16,12 +16,12 @@ import (
 	"unsafe"
 )
 
-// revealPath reveals given path in macOS Finder app.
+// openPath opens given path in macOS Finder app.
 // The actual implementation is in Objective-C.
-func revealPath(path string) {
+func openPath(path string) {
 	cPath := C.CString(path)
 	defer C.free(unsafe.Pointer(cPath))
-	C.RevealInFinder(cPath)
+	C.OpenPath(cPath)
 }
 
 // isFuseAvailable detects FUSE availability for macOS.

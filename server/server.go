@@ -496,7 +496,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			})
 		}
 
-		extension.RevealInFileManager(mountPoint)
+		extension.OpenPath(mountPoint)
 		return c.JSON(http.StatusOK, echo.Map{
 			"code": ERR_CODE_OK,
 			"msg":  ERR_MSG_OK,

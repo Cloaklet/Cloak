@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 )
 
-// revealPath reveals given path in macOS Finder app.
-func revealPath(path string) {
+// openPath opens given path in OS file manager.
+func openPath(path string) {
 	// FIXME
 }
 

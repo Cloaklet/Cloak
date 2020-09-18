@@ -3,7 +3,7 @@
 package extension
 
 // TODO
-func revealPath(path string) {}
+func openPath(path string) {}
 
 // TODO
 func isFuseAvailable() bool {
