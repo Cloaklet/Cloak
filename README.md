@@ -33,11 +33,26 @@ The macOS app bundle includes `gocryptfs` binary, so you don't to compile and in
 Please note that we don't currently create app bundle for Linux, so `gocryptfs` is not included.
 Drop an official binary from [gocryptfs release](https://github.com/rfjakob/gocryptfs/releases) into anywhere of your `PATH` should work.
 
+# To develop
+
+## Frontend
+
+The frontend (UI) project resides in `frontend` directory. It's a standard Vue project managed by vue-cli.
+Simply run `npm run serve` inside `frontend` directory.
+You can also run the `serve` task from vue-cli UI, run `vue ui` to get started.
+
+## Backend
+
+You should build the frontend project first so the backend can find assets for the UI.
+
+- Inside the `frontend` directory, run `npm run build`.
+- To run the app, simply invoke `go run .` in the project root.
+
 # Notice
 
 - `gocryptfs` requires `FUSE` to function. For macOS please install `OSXFUSE`.
 - Windows is not supported, because `gocryptfs` does not work on Windows.
-- Avoid commiting `statik` module because it contains large blob of files produced by the frontend project.
+- Avoid committing `statik` module because it contains large blob of files produced by the frontend project.
 
 # License
 
