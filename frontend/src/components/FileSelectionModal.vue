@@ -1,6 +1,6 @@
 <template>
   <div class="modal active" @keydown.esc="close">
-    <a href="javascript:void(0)" class="modal-overlay" aria-label="Close" @click="close"></a>
+    <a class="modal-overlay" aria-label="Close" @click="close"></a>
     <div class="modal-container">
       <div class="modal-header">
         <a class="btn btn-clear float-right"
@@ -12,7 +12,7 @@
         <div class="content">
           <div class="menu p-0">
             <div class="menu-item mt-0" @click="clickOnParentPath" v-if="hasParent">
-              <a href="javascript:void(0)">
+              <a>
                 <div class="tile tile-centered">
                   <div class="tile-icon"><i class="ri-arrow-up-line"></i></div>
                   <div class="tile-content">
@@ -22,7 +22,7 @@
               </a>
             </div>
             <div class="menu-item mt-0" v-for="item in items" :key="item.name" @click="clickOnItem(item)">
-              <a href="javascript:void(0)" :class="{ active: selected === item }">
+              <a :class="{ active: selected === item }">
                 <div class="tile tile-centered">
                   <div class="tile-icon">
                     <i class="ri-file-shield-2-line" v-if="item.type === 'file'"></i>

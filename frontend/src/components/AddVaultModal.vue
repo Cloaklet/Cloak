@@ -1,6 +1,6 @@
 <template>
   <div class="modal active" @keydown.esc="close">
-    <a href="javascript:void(0)" class="modal-overlay" aria-label="Close" @click="close"></a>
+    <a class="modal-overlay" aria-label="Close" @click="close"></a>
     <div class="modal-container">
       <div class="modal-header">
         <a class="btn btn-clear float-right"
