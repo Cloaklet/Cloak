@@ -2,6 +2,15 @@
   "alert": {
     "errcode": "(错误码: {code})"
   },
+  "config": {
+    "about": {
+      "title": "关于"
+    },
+    "lang": {
+      "label": "语言"
+    },
+    "title": "选项"
+  },
   "list": {
     "add": {
       "add": "添加已有的加密库",

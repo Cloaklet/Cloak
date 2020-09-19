@@ -2,6 +2,15 @@
   "alert": {
     "errcode": "(error code: {code})"
   },
+  "config": {
+    "about": {
+      "title": "About"
+    },
+    "lang": {
+      "label": "Language"
+    },
+    "title": "Options"
+  },
   "list": {
     "add": {
       "add": "Add Existing Vault",
