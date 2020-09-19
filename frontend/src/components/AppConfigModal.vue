@@ -22,7 +22,7 @@
               <a v-t="'config.about.title'"></a>
             </li>
           </ul>
-          <div class="p-2" v-if="active === 'options'">
+          <div class="p-2 m-2" v-if="active === 'options'">
             <div class="form-horizontal">
               <div class="form-group">
                 <div class="col-3">
@@ -40,7 +40,7 @@
               </div>
             </div>
           </div>
-          <div class="p-2" v-if="active === 'about'">
+          <div class="p-2 m-2" v-if="active === 'about'">
             // To be done...
           </div>
         </div>
