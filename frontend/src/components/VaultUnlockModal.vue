@@ -11,7 +11,7 @@
       <div class="modal-body">
         <div class="content">
           <div class="form-group">
-            <i18n tag="label" for="vault-password" class="form-label" path="'panel.unlock.password.label'">
+            <i18n tag="label" for="vault-password" class="form-label" path="panel.unlock.password.label">
               <template #vaultname>{{ selectedVault.name }}</template>
             </i18n>
             <input type="password"
