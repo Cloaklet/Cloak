@@ -157,7 +157,7 @@ export default {
   border: .05rem solid #dadee4;
   height: 450px;
 }
-.modal-body .content, .modal-body .content .menu {
+.modal-body .content, .modal-body .content .menu, .menu .empty {
   height: 100%;
 }
 .current-path {
