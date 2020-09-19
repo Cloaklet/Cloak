@@ -93,7 +93,7 @@
                   <input type="text"
                          class="form-input"
                          id="add-vault-file"
-                         placeholder="Vault Config File"
+                         :placeholder="$t('list.add.vault_conf_file')"
                          v-model="addVaultFile"
                          disabled>
                   <button class="btn input-group-btn"

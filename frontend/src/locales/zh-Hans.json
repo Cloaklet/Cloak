@@ -19,7 +19,8 @@
         "label": "选择加密库中的 {filename} 文件",
         "title": "选择加密库中的 gocryptfs.conf 文件"
       },
-      "title": "@:(list.buttons.add)"
+      "title": "@:(list.buttons.add)",
+      "vault_conf_file": "加密库的配置文件"
     },
     "buttons": {
       "add": "添加加密库",

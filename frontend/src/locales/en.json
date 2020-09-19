@@ -19,7 +19,8 @@
         "label": "Choose the {filename} file of your existing vault",
         "title": "Select the gocryptfs.conf file inside target vault"
       },
-      "title": "@:(list.buttons.add)"
+      "title": "@:(list.buttons.add)",
+      "vault_conf_file": "Vault Config File"
     },
     "buttons": {
       "add": "Add Vault",
