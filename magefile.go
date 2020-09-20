@@ -49,7 +49,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 	} else {
 		commitString = commit
 	}
-	currentTimeString := time.Now().Format(`2003-03-15 06:45:56 UTC`)
+	currentTimeString := time.Now().Format(`2006-01-02 15:04:05 MST`)
 
 	executable := "cloak"
 	buildCmd := []string{
