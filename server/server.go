@@ -244,7 +244,17 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			vault.MountPoint = &randomMountPoint
 		}
 		// Start a gocryptfs process to unlock this vault
-		args := []string{"-fg", "--", vault.Path, *vault.MountPoint}
+		args := []string{"-fg"}
+		// Readonly mode
+		if vault.ReadOnly {
+			args = append(args, "-ro")
+			logger.Debug().
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", *vault.MountPoint).
+				Bool("readOnly", vault.ReadOnly).
+				Msg("Vault is set to mount Read-Only")
+		}
+		args = append(args, "--", vault.Path, *vault.MountPoint)
 		s.processes[vaultId] = exec.Command(s.cmd, args...)
 		s.mountPoints[vaultId] = *vault.MountPoint
 
@@ -368,6 +378,14 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			}
 		}
 
+		if vault.AutoReveal {
+			logger.Debug().
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", *vault.MountPoint).
+				Bool("autoReveal", vault.AutoReveal).
+				Msg("Auto revealing mountpoint")
+			extension.OpenPath(*vault.MountPoint)
+		}
 		// Respond
 		logger.Debug().
 			Int64("vaultId", vaultId).
