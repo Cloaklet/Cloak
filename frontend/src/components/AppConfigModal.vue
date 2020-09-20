@@ -8,18 +8,18 @@
            @click="close"></a>
         <div class="modal-title h5" v-t="'config.title'"></div>
       </div>
-      <div class="modal-body p-0 bg-gray">
-        <div class="content">
+      <div class="modal-body p-2 bg-gray">
+        <div class="content mx-2">
           <ul class="tab tab-block">
             <li class="tab-item"
                 :class="{ active: active === 'options' }"
                 @click="active = 'options'">
-              <a v-t="'config.title'"></a>
+              <a><i class="ri-tools-fill"></i> {{ $t('config.general.title') }}</a>
             </li>
             <li class="tab-item"
                 :class="{ active: active === 'about' }"
                 @click="active = 'about'">
-              <a v-t="'config.about.title'"></a>
+              <a><i class="ri-information-fill"></i> {{ $t('config.about.title') }}</a>
             </li>
           </ul>
           <div class="p-2 m-2" v-if="active === 'options'">
@@ -41,7 +41,13 @@
             </div>
           </div>
           <div class="p-2 m-2" v-if="active === 'about'">
-            // To be done...
+            <div class="tile">
+              <div class="tile-content">
+                <div class="tile-title text-bold">Cloak</div>
+                <div class="tile-subtitle">{{ version.version || 'DEV' }} ({{ version.gitCommit || 'unknown' }})</div>
+                <div class="tile-subtitle text-gray">Built@ {{ version.buildTime || 'unknown' }}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -51,6 +57,9 @@
 </template>
 
 <script>
+import axios from 'axios'
+
+const API = 'http://127.0.0.1:9763'
 export default {
   name: "AppConfigModal",
   computed: {
@@ -60,7 +69,12 @@ export default {
   },
   data: function() {
     return {
-      active: 'options'
+      active: 'options',
+      version: {
+        version: null,
+        buildTime: null,
+        gitCommit: null
+      }
     }
   },
   methods: {
@@ -70,6 +84,21 @@ export default {
     changeLanguage(event) {
       this.$root.$i18n.locale = event.target.value
     }
+  },
+  mounted() {
+    axios.get(`${API}/api/options`).then(resp => {
+      if (resp.data.code !== 0) {
+        return this.$store.commit('setError', resp.data)
+      }
+      let versionInfo = resp.data.item.version
+      this.version = {
+        version: versionInfo.version,
+        buildTime: versionInfo.buildTime,
+        gitCommit: versionInfo.gitCommit
+      }
+    }).catch(err => {
+      return this.$store.commit('setError', {code: -1, msg: err.message}) // FIXME
+    })
   }
 }
 </script>

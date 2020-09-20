@@ -4,6 +4,7 @@ import (
 	"Cloak/extension"
 	"Cloak/models"
 	_ "Cloak/statik"
+	"Cloak/version"
 	"bytes"
 	"context"
 	"database/sql"
@@ -167,6 +168,7 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		apis.POST("/vaults", server.AddOrCreateVault)
 		apis.POST("/vault/:id", server.OperateOnVault)
 		apis.POST("/subpaths", server.ListSubPaths)
+		apis.GET("/options", server.GetOptions)
 	}
 	return &server
 }
@@ -178,7 +180,7 @@ type VaultInfo struct {
 }
 
 // ListVaults returns a list of all known vaults
-func (s *ApiServer) ListVaults(c echo.Context) error {
+func (s *ApiServer) ListVaults(_ echo.Context) error {
 	if vaults, err := s.repo.List(nil); err != nil {
 		return ErrListFailed
 	} else {
@@ -675,5 +677,17 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 		"sep":   string(filepath.Separator),
 		"pwd":   form.Pwd,
 		"items": subPathItems,
+	})
+}
+
+// GetOptions returns app options.
+// Currently it only returns version info.
+func (s *ApiServer) GetOptions(c echo.Context) error {
+	return ErrOk.WrapItem(echo.Map{
+		"version": echo.Map{
+			"version":   version.Version,
+			"buildTime": version.BuildTime,
+			"gitCommit": version.GitCommit,
+		},
 	})
 }

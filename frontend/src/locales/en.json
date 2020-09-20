@@ -6,6 +6,9 @@
     "about": {
       "title": "About"
     },
+    "general": {
+      "title": "General"
+    },
     "lang": {
       "label": "Language"
     },

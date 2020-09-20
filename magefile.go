@@ -8,11 +8,13 @@ import (
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 	"github.com/magefile/mage/sh"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 // Default target to run when none is specified
@@ -32,10 +34,32 @@ func buildForTarget(c context.Context) (output string, err error) {
 		"GOARCH": c.Value(archKey).(string),
 	}
 
+	// Read version string from version/VERSION
+	var versionString string
+	if version, err := ioutil.ReadFile(filepath.Join("version", "VERSION")); err != nil {
+		return err
+	} else {
+		versionString = string(version)
+	}
+	// Get commit ID from git
+	commitString = "unknown"
+	if commit, err := sh.Output(`git`, `rev-parse`, `--short`, `HEAD`); err != nil {
+		return err
+	} else {
+		commitString = commit
+	}
+	currentTimeString := time.Now().Format(`2003-03-15 06:45:56 UTC`)
+
 	executable := "cloak"
 	buildCmd := []string{
 		`go`, `build`,
-		`-ldflags`, `-X 'main.ReleaseMode=true' -X 'Cloak/extension.ReleaseMode=true'`,
+		`-ldflags`, strings.Join([]string{
+			`-X 'main.ReleaseMode=true'`,
+			`-X 'Cloak/extension.ReleaseMode=true'`,
+			fmt.Sprintf(`-X 'Cloak/version.Version=%s'`, versionString),
+			fmt.Sprintf(`-X 'Cloak/version.BuildTime=%s'`, currentTimeString),
+			fmt.Sprintf(`-X 'Cloak/version.GitCommit=%s'`, commitString),
+		}, ' '),
 	}
 	buildCmd = append(buildCmd, `-o`, executable)
 
