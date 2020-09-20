@@ -206,8 +206,10 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 	}
 
 	var form struct {
-		Op       string `json:"op"`       // lock/unlock
-		Password string `json:"password"` // for `lock` op only
+		Op         string `json:"op"`         // lock/unlock/reveal/update
+		Password   string `json:"password"`   // for `lock` op only
+		AutoReveal bool   `json:"autoreveal"` // for `update` op only
+		ReadOnly   bool   `json:"readonly"`   // for `update` op only
 	}
 	if err := c.Bind(&form); err != nil {
 		return ErrMalformedInput
@@ -405,6 +407,37 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 
 		extension.OpenPath(mountPoint)
 		return ErrOk
+	} else if form.Op == "update" { // Update autoreveal / readonly settings
+		// Lock internal maps
+		s.lock.Lock()
+		defer s.lock.Unlock()
+
+		// Locate vault in repository
+		vault, err := s.repo.Get(vaultId, nil)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return ErrVaultNotExist
+			}
+			return err
+		}
+
+		// Vault must be locked to update its settings
+		if _, ok := s.mountPoints[vaultId]; ok {
+			return ErrVaultAlreadyUnlocked.WrapItem(VaultInfo{
+				Vault: vault,
+				State: "unlocked",
+			})
+		}
+
+		if err := s.repo.WithTransaction(func(tx models.Transactional) error {
+			vault.AutoReveal = form.AutoReveal
+			vault.ReadOnly = form.ReadOnly
+			logger.Debug().Interface("form", form).Interface("preUpdateVault", vault).Send()
+			return s.repo.Update(&vault, tx)
+		}); err != nil {
+			return err
+		}
+		return ErrOk.WrapItem(VaultInfo{State: "locked", Vault: vault})
 	} else {
 		// Currently not supported
 		return ErrUnsupportedOperation
@@ -431,8 +464,9 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 		}
 	}
 
-	return s.repo.WithTransaction(func(tx models.Transactional) error {
-		vault, err := s.repo.Get(vaultId, tx)
+	var vault models.Vault
+	err = s.repo.WithTransaction(func(tx models.Transactional) error {
+		vault, err = s.repo.Get(vaultId, tx)
 		if err != nil {
 			// Vault ID not found
 			if err == sql.ErrNoRows {
@@ -440,17 +474,17 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 			}
 			return err
 		}
-		if err = s.repo.Delete(&vault, tx); err != nil {
-			return err
-		} else {
-			// Deleted
-			logger.Debug().
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Msg("Vault removed. It is no longer managed by Cloak.")
-			return ErrOk
-		}
+		return s.repo.Delete(&vault, tx)
 	})
+	if err != nil {
+		return err
+	}
+	// Deleted
+	logger.Debug().
+		Int64("vaultId", vaultId).
+		Str("vaultPath", vault.Path).
+		Msg("Vault removed. It is no longer managed by Cloak.")
+	return ErrOk
 }
 
 // AddOrCreateVault adds an existing gocryptfs vault to the repository,
@@ -474,23 +508,30 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 			return ErrPathNotExist
 		}
 		vaultPath := filepath.Dir(form.Path)
-		return s.repo.WithTransaction(func(tx models.Transactional) error {
-			vault, err := s.repo.Create(echo.Map{"path": vaultPath}, tx)
+
+		var err error
+		var vault models.Vault
+		err = s.repo.WithTransaction(func(tx models.Transactional) error {
+			vault, err = s.repo.Create(echo.Map{"path": vaultPath}, tx)
 			if err != nil {
 				logger.Error().Err(err).
 					Str("vaultPath", vaultPath).
 					Msg("Failed to add existing vault")
-				return err
 			}
-			logger.Debug().
-				Str("vaultPath", vaultPath).
-				Int64("vaultId", vault.ID).
-				Msg("Added existing vault")
-			return ErrOk.WrapItem(VaultInfo{
-				Vault: vault,
-				State: "locked",
-			})
+			return err
 		})
+		if err != nil {
+			return err
+		}
+		logger.Debug().
+			Str("vaultPath", vaultPath).
+			Int64("vaultId", vault.ID).
+			Msg("Added existing vault")
+		return ErrOk.WrapItem(VaultInfo{
+			Vault: vault,
+			State: "locked",
+		})
+
 	} else if form.Op == "create" {
 		// Check path existence
 		if pathInfo, err := os.Stat(form.Path); err != nil || !pathInfo.IsDir() {
@@ -535,22 +576,25 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 				Str("vaultDirectroy", form.Path).
 				Str("vaultName", form.Name).
 				Msg("Vault initialized on disk")
-			return s.repo.WithTransaction(func(tx models.Transactional) error {
-				vault, err := s.repo.Create(echo.Map{"path": vaultPath}, tx)
+			var vault models.Vault
+			if err := s.repo.WithTransaction(func(tx models.Transactional) error {
+				vault, err = s.repo.Create(echo.Map{"path": vaultPath}, tx)
 				if err != nil {
 					logger.Error().Err(err).
 						Str("vaultPath", vaultPath).
 						Msg("Failed to add newly created vault")
-					return err
 				}
-				logger.Debug().
-					Str("vaultPath", vaultPath).
-					Int64("vaultId", vault.ID).
-					Msg("Added newly created vault")
-				return ErrOk.WrapItem(VaultInfo{
-					Vault: vault,
-					State: "locked",
-				})
+				return err
+			}); err != nil {
+				return err
+			}
+			logger.Debug().
+				Str("vaultPath", vaultPath).
+				Int64("vaultId", vault.ID).
+				Msg("Added newly created vault")
+			return ErrOk.WrapItem(VaultInfo{
+				Vault: vault,
+				State: "locked",
 			})
 		} else { // Failed to init vault, inspect error and respond to UI
 			rc := initProc.ProcessState.ExitCode()
