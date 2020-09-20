@@ -450,7 +450,6 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		if err := s.repo.WithTransaction(func(tx models.Transactional) error {
 			vault.AutoReveal = form.AutoReveal
 			vault.ReadOnly = form.ReadOnly
-			logger.Debug().Interface("form", form).Interface("preUpdateVault", vault).Send()
 			return s.repo.Update(&vault, tx)
 		}); err != nil {
 			return err
