@@ -6,6 +6,8 @@ type Vault struct {
 	ID         int64   `db:"column:id;" json:"id"`
 	Path       string  `db:"column:path;" json:"path"`
 	MountPoint *string `db:"column:mountpoint;" json:"mountpoint"`
+	AutoReveal bool    `db:"column:autoreveal;" json:"autoreveal"`
+	ReadOnly   bool    `db:"column:readonly;" json:"readonly"`
 }
 
 type VaultRepo struct {
@@ -26,11 +28,17 @@ func (r *VaultRepo) Create(values map[string]interface{}, tx Transactional) (vau
 		mountpoint := v.(string)
 		vault.MountPoint = &mountpoint
 	}
+	if v, ok := values["autoreveal"].(bool); ok {
+		vault.AutoReveal = v
+	}
+	if v, ok := values["readonly"].(bool); ok {
+		vault.ReadOnly = v
+	}
 
 	var result sql.Result
 	result, err = tx.Exec(
-		`INSERT INTO vaults (path, mountpoint) VALUES (?, ?);`,
-		vault.Path, vault.MountPoint,
+		`INSERT INTO vaults (path, mountpoint) VALUES (?, ?, ?, ?);`,
+		vault.Path, vault.MountPoint, vault.AutoReveal, vault.ReadOnly,
 	)
 	if err != nil {
 		return
@@ -55,8 +63,8 @@ func (r *VaultRepo) Update(v *Vault, tx Transactional) error {
 		tx = r.db
 	}
 	_, err := tx.Exec(
-		`UPDATE vaults SET path = ?, mountpoint = ? WHERE id = ?;`,
-		v.Path, v.MountPoint, v.ID,
+		`UPDATE vaults SET path = ?, mountpoint = ?, autoreveal = ?, readonly = ? WHERE id = ?;`,
+		v.Path, v.MountPoint, v.AutoReveal, v.ReadOnly, v.ID,
 	)
 	return err
 }

@@ -36,7 +36,7 @@ func (s *vaultTestSuite) Test_01_Vault() {
 
 	// Create
 	s.mock.ExpectExec(`INSERT INTO vaults(.+)`).
-		WithArgs(path, nil).
+		WithArgs(path, nil, sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 0))
 	v, err := s.repo.Create(map[string]interface{}{
 		"path":       path,
@@ -50,7 +50,7 @@ func (s *vaultTestSuite) Test_01_Vault() {
 	newPath := "/test_new"
 	v.Path = newPath
 	s.mock.ExpectExec(`UPDATE vaults SET (.+)`).
-		WithArgs(newPath, nil, v.ID).
+		WithArgs(newPath, nil, sqlmock.AnyArg(), sqlmock.AnyArg(), v.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	err = s.repo.Update(&v, nil)
 	s.Require().NoError(err)
@@ -59,7 +59,7 @@ func (s *vaultTestSuite) Test_01_Vault() {
 
 	// List
 	s.mock.ExpectExec(`INSERT INTO vaults(.+)`).
-		WithArgs(path, "/123").
+		WithArgs(path, "/123", sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(2, 0))
 	v2, err := s.repo.Create(map[string]interface{}{
 		"path":       path,
@@ -72,9 +72,9 @@ func (s *vaultTestSuite) Test_01_Vault() {
 
 	s.mock.ExpectQuery(`SELECT \* FROM vaults(.+)`).
 		WillReturnRows(
-			sqlmock.NewRows([]string{"id", "path", "mountpoint"}).
-				AddRow(1, newPath, nil).
-				AddRow(2, path, nil),
+			sqlmock.NewRows([]string{"id", "path", "mountpoint", "autoreveal", "readonly"}).
+				AddRow(1, newPath, nil, false, false).
+				AddRow(2, path, nil, false, false),
 		)
 	vaults, err := s.repo.List(nil)
 	s.Require().NoError(err)
@@ -84,8 +84,8 @@ func (s *vaultTestSuite) Test_01_Vault() {
 	s.mock.ExpectQuery(`SELECT \* FROM vaults WHERE id = \?(.+)`).
 		WithArgs(v.ID).
 		WillReturnRows(
-			sqlmock.NewRows([]string{"id", "path", "mountpoint"}).
-				AddRow(1, newPath, nil),
+			sqlmock.NewRows([]string{"id", "path", "mountpoint", "autoreveal", "readonly"}).
+				AddRow(1, newPath, nil, false, false),
 		)
 	vault, err := s.repo.Get(v.ID, nil)
 	s.Require().NoError(err)

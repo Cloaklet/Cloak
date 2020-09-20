@@ -6,6 +6,7 @@ import (
 	"Cloak/models"
 	"Cloak/server"
 	"database/sql"
+	"fmt"
 	"github.com/getlantern/systray"
 	"github.com/lopezator/migrator"
 	_ "github.com/mattn/go-sqlite3"
@@ -47,6 +48,18 @@ func (a *App) Migrate() {
     mountpoint TEXT UNIQUE
 );`)
 					return err
+				},
+			},
+			&migrator.Migration{
+				Name: "Add autoreveal & readonly column",
+				Func: func(tx *sql.Tx) error {
+					for _, column := range []string{"autoreveal", "readonly"} {
+						_, err := tx.Exec(fmt.Sprintf(`ALTER TABLE vaults ADD COLUMN %s BOOLEAN DEFAULT false;`, column))
+						if err != nil {
+							return err
+						}
+					}
+					return nil
 				},
 			},
 		),
