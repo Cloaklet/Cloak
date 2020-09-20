@@ -17,8 +17,8 @@ module.exports = {
 
     // FontMin plugin greatly impacts the build time (+~300s),
     // disable it for now.
-    config.plugin('FontminPlugin')
-      .use(FontminPlugin, [{autodetect: true, glyphs: []}])
+    // config.plugin('FontminPlugin')
+    //   .use(FontminPlugin, [{autodetect: true, glyphs: []}])
 
   },
 
