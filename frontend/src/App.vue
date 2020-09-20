@@ -47,4 +47,7 @@ export default {
   transform: none;
   border-radius: 0;
 }
+[class^=ri-] {
+  vertical-align: top;
+}
 </style>
