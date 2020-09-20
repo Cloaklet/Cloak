@@ -110,17 +110,15 @@
         <button class="btn btn-primary float-right"
                 v-if="mode === 'create'"
                 :class="{ loading: $wait.is('creating vault') }"
-                v-wait:disabled="'creating vault'"
                 v-wait:click.start="'creating vault'"
-                :disabled="!canCreate"
+                :disabled="!canCreate || $wait.is('creating vault')"
                 @click="requestCreateVault"
                 v-t="'misc.create'"></button>
         <button class="btn btn-primary float-right"
                 v-if="mode === 'add'"
                 :class="{ loading: $wait.is('adding vault') }"
-                v-wait:disabled="'adding vault'"
                 v-wait:click.start="'adding vault'"
-                :disabled="!addVaultFile"
+                :disabled="!addVaultFile || $wait.is('adding vault')"
                 @click="requestAddVault"
                 v-t="'misc.add'"></button>
       </div>

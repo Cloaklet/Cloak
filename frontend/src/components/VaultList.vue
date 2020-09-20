@@ -26,9 +26,8 @@
               @click="showAddVaultModal = true">➕</button>
       <button class="btn btn-lg bg-gray h6 text-normal tooltip"
               :data-tooltip="$t('list.buttons.remove')"
-              :disabled="!selectedVault"
+              :disabled="!selectedVault || $wait.is('removing vault')"
               :class="{ loading: $wait.is('removing vault') }"
-              v-wait:disabled="'removing vault'"
               @click="removeVault({vaultId: selectedVault.id})">➖</button>
     </div>
     <AddVaultModal v-if="showAddVaultModal"

@@ -25,9 +25,8 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary"
-                :disabled="!password.length"
+                :disabled="!password.length || $wait.is('unlocking')"
                 :class="{ loading: $wait.is('unlocking') }"
-                v-wait:disabled="'unlocking'"
                 v-wait:click.start="'unlocking'"
                 @click="requestUnlockVault"
                 v-t="'misc.unlock'"></button>
