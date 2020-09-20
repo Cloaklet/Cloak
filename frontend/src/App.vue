@@ -50,4 +50,7 @@ export default {
 [class^=ri-] {
   vertical-align: top;
 }
+.tab {
+  user-select: none;
+}
 </style>
