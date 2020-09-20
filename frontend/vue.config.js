@@ -1,4 +1,5 @@
 const FontminPlugin = require('fontmin-webpack')
+const NukeCssPlugin = require('nukecss-webpack')
 
 module.exports = {
   productionSourceMap: false,
@@ -9,8 +10,16 @@ module.exports = {
     fontsRule
       .use('file-loader')
       .loader('file-loader')
+      .end()
+
+    config.plugin('NukeCssPlugin')
+      .use(NukeCssPlugin)
+
+    // FontMin plugin greatly impacts the build time (+~300s),
+    // disable it for now.
     config.plugin('FontminPlugin')
       .use(FontminPlugin, [{autodetect: true, glyphs: []}])
+
   },
 
   pluginOptions: {
