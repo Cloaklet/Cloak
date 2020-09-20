@@ -65,7 +65,8 @@
     "buttons": {
       "lock": "锁住",
       "reveal": "查看解密位置",
-      "unlock": "解密..."
+      "unlock": "解密...",
+      "vault_options": "加密库选项"
     },
     "notselected": {
       "subtitle": "在左侧选中一个加密库来查看其信息",
@@ -83,5 +84,19 @@
     "file": "选择...",
     "gotoparent": "返回上层"
   },
-  "unlocked": "已解密"
+  "unlocked": "已解密",
+  "vault": {
+    "options": {
+      "autoreveal": {
+        "do_nothing": "什么都不做",
+        "label": "解密成功后",
+        "reveal_drive": "@:(panel.buttons.reveal)"
+      },
+      "mounting": "挂载",
+      "password": "密码",
+      "readonly": {
+        "label": "只读模式"
+      }
+    }
+  }
 }

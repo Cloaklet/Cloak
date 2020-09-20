@@ -65,7 +65,8 @@
     "buttons": {
       "lock": "Lock",
       "reveal": "Reveal Drive",
-      "unlock": "Unlock..."
+      "unlock": "Unlock...",
+      "vault_options": "Vault Options"
     },
     "notselected": {
       "subtitle": "Click on a vault on the left to show its details",
@@ -83,5 +84,19 @@
     "file": "Choose...",
     "gotoparent": "Go to parent directory"
   },
-  "unlocked": "unlocked"
+  "unlocked": "unlocked",
+  "vault": {
+    "options": {
+      "autoreveal": {
+        "do_nothing": "Do nothing",
+        "label": "After successful unlock",
+        "reveal_drive": "@:(panel.buttons.reveal)"
+      },
+      "mounting": "Mounting",
+      "password": "Password",
+      "readonly": {
+        "label": "Read-Only"
+      }
+    }
+  }
 }

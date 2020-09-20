@@ -61,6 +61,8 @@ export default new Vuex.Store({
                 name: payload.path.split('/').pop(),
                 path: payload.path,
                 mountpoint: payload.mountpoint,
+                autoreveal: payload.autoreveal,
+                readonly: payload.readonly,
                 state: payload.state,
                 selected: false,
             })
@@ -68,6 +70,19 @@ export default new Vuex.Store({
         setVaultState(state, payload) {
             for (let v of state.vaults) {
                 if (v.id === payload.vaultId) {
+                    v.state = payload.state
+                    break
+                }
+            }
+        },
+        updateVault(state, payload) {
+            for (let v of state.vaults) {
+                if (v.id === payload.id) {
+                    v.name = payload.path.split('/').pop()
+                    v.path = payload.path
+                    v.mountpoint = payload.mountpoint
+                    v.autoreveal = payload.autoreveal
+                    v.readonly = payload.readonly
                     v.state = payload.state
                     break
                 }
@@ -87,6 +102,8 @@ export default new Vuex.Store({
                         name: v.path.split('/').pop(),
                         path: v.path,
                         mountpoint: v.mountpoint,
+                        autoreveal: v.autoreveal,
+                        readonly: v.readonly,
                         state: v.state,
                         selected: false
                     })
@@ -172,6 +189,20 @@ export default new Vuex.Store({
                     vaultId: payload.vaultId,
                     state: resp.data.state
                 })
+            }).catch(err => {
+                return commit('setError', {code: -1, msg: err.message}) // FIXME
+            })
+        },
+        updateVaultOptions({commit}, payload) {
+            axios.post(`${API}/api/vault/${payload.vaultId}`, {
+                op: 'update',
+                autoreveal: payload.autoreveal,
+                readonly: payload.readonly
+            }).then(resp => {
+                if (resp.data.code !== 0) {
+                    return commit('setError', resp.data)
+                }
+                commit('updateVault', resp.data.item)
             }).catch(err => {
                 return commit('setError', {code: -1, msg: err.message}) // FIXME
             })

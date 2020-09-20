@@ -19,12 +19,10 @@
         </div>
       </div><!--vault info end-->
       <div class="vault-operations text-center" v-if="selectedVault.state === 'unlocked'">
-        <div class="text-center">
-          <button class="btn btn-primary btn-lg"
-                  @click="revealMountPointForVault({vaultId: selectedVault.id})">
-            <i class="ri-folder-open-fill"></i> {{ $t('panel.buttons.reveal') }}
-          </button>
-        </div>
+        <button class="btn btn-primary btn-lg"
+                @click="revealMountPointForVault({vaultId: selectedVault.id})">
+          <i class="ri-folder-open-fill"></i> {{ $t('panel.buttons.reveal') }}
+        </button>
         <div class="text-center mt-2">
           <button class="btn btn-sm"
                   @click="lockVault({vaultId: selectedVault.id})">
@@ -37,24 +35,34 @@
                 @click="showUnlock = true">
           <i class="ri-key-2-fill"></i> {{ $t('panel.buttons.unlock') }}
         </button>
+        <div class="text-center mt-2">
+          <button class="btn btn-link btn-sm text-dark"
+                  @click="showVaultOptionsModal = true">
+            <i class="ri-settings-3-fill"></i> {{ $t('panel.buttons.vault_options') }}
+          </button>
+        </div>
       </div>
     </div>
     <VaultUnlockModal v-if="showUnlock"
                       @close="showUnlock = false"
                       @unlock-vault-request="unlockVault"/>
+    <VaultOptionsModal v-if="showVaultOptionsModal"
+                       @close="showVaultOptionsModal = false" />
   </div>
 </template>
 
 <script>
 import {mapActions, mapGetters} from 'vuex'
 import VaultUnlockModal from "@/components/VaultUnlockModal";
+import VaultOptionsModal from "@/components/VaultOptionsModal";
 
 export default {
   name: "VaultInfoPanel",
-  components: {VaultUnlockModal},
+  components: {VaultOptionsModal, VaultUnlockModal},
   data: function () {
     return {
-      showUnlock: false
+      showUnlock: false,
+      showVaultOptionsModal: false
     }
   },
   computed: {
