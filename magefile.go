@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // Default target to run when none is specified
@@ -37,14 +38,14 @@ func buildForTarget(c context.Context) (output string, err error) {
 	// Read version string from version/VERSION
 	var versionString string
 	if version, err := ioutil.ReadFile(filepath.Join("version", "VERSION")); err != nil {
-		return err
+		return "", err
 	} else {
 		versionString = string(version)
 	}
 	// Get commit ID from git
-	commitString = "unknown"
+	commitString := "unknown"
 	if commit, err := sh.Output(`git`, `rev-parse`, `--short`, `HEAD`); err != nil {
-		return err
+		return "", err
 	} else {
 		commitString = commit
 	}
@@ -59,7 +60,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 			fmt.Sprintf(`-X 'Cloak/version.Version=%s'`, versionString),
 			fmt.Sprintf(`-X 'Cloak/version.BuildTime=%s'`, currentTimeString),
 			fmt.Sprintf(`-X 'Cloak/version.GitCommit=%s'`, commitString),
-		}, ' '),
+		}, " "),
 	}
 	buildCmd = append(buildCmd, `-o`, executable)
 
