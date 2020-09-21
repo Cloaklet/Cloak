@@ -151,7 +151,6 @@ export default {
       })
     },
     setVaultMountpoint(path) {
-      console.log(path)
       this.updateVaultOptions({mountpoint: path})
     },
     mountpointSelectionClosed() {
