@@ -157,9 +157,11 @@ export default {
   methods: {
     setCreateVaultDir(path) {
       this.createVaultDir = path
+      this.showDirSelection = false
     },
     setAddVaultFile(path) {
       this.addVaultFile = path
+      this.showFileSelection = false
     },
     close() {
       this.$emit('close')

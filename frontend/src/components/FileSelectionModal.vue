@@ -138,7 +138,6 @@ export default {
       } else if (this.mode === 'directory') {
         this.$emit('selected', `${this.pwd}`)
       }
-      this.close()
     },
     close() {
       this.$emit('close')
