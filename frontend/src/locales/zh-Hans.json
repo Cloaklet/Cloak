@@ -105,7 +105,13 @@
         "notmatch": "@:(list.create.password.repeat.notmatch)",
         "title": "@:(vault.options.buttons.change_password)"
       },
-      "mounting": "挂载",
+      "mounting": {
+        "manual": "将解密内容挂载到自定义位置",
+        "mounting": "挂载",
+        "selection": {
+          "title": "选择一个空的目录"
+        }
+      },
       "password": "密码",
       "readonly": {
         "label": "只读模式"

@@ -105,7 +105,13 @@
         "notmatch": "@:(list.create.password.repeat.notmatch)",
         "title": "@:(vault.options.buttons.change_password)"
       },
-      "mounting": "Mounting",
+      "mounting": {
+        "manual": "Mount to custom location",
+        "mounting": "Mounting",
+        "selection": {
+          "title": "Select an empty directory"
+        }
+      },
       "password": "Password",
       "readonly": {
         "label": "Read-Only"
