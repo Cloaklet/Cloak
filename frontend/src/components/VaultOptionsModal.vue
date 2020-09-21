@@ -67,10 +67,15 @@
               </label>
             </div>
             <div class="form-group custom-mountpoint" v-if="useCustomMountpoint">
-              <input class="form-input"
-                     type="text"
-                     v-model="selectedVault.mountpoint"
-                     disabled>
+              <div class="input-group">
+                <input class="form-input"
+                       type="text"
+                       v-model="selectedVault.mountpoint"
+                       disabled>
+                <button class="btn input-group-btn"
+                        v-t="'select.file'"
+                        @click="showMountpointSelectionModal = true"></button>
+              </div>
             </div>
           </div>
           <div class="p-2 m-2" v-else-if="active === 'password'">
