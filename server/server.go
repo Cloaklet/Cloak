@@ -175,6 +175,8 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		apis.POST("/subpaths", server.ListSubPaths)
 		apis.GET("/options", server.GetOptions)
 	}
+	// We use `rand` to generate random mountpoint name, so be sure to seed it upon start up
+	rand.Seed(time.Now().UTC().UnixNano())
 	return &server
 }
 
