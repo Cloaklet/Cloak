@@ -58,23 +58,32 @@
             </div>
           </div>
           <div class="p-2 m-2" v-else-if="active === 'password'">
-            Password options are still under construction
+            <div class="text-center">
+              <button class="btn btn-block" @click="showPasswordChangingModal = true">
+                <i class="ri-key-2-fill"></i> {{ $t('vault.options.buttons.change_password') }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
       <div class="modal-footer"></div>
     </div>
+    <VaultPasswordChangingModal v-if="showPasswordChangingModal"
+                                @close="showPasswordChangingModal = false"/>
   </div>
 </template>
 
 <script>
 import {mapGetters} from 'vuex'
+import VaultPasswordChangingModal from "@/components/VaultPasswordChangingModal";
 
 export default {
   name: "VaultOptionsModal",
+  components: {VaultPasswordChangingModal},
   data: function() {
     return {
-      active: 'general'
+      active: 'general',
+      showPasswordChangingModal: false
     }
   },
   computed: {

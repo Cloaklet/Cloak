@@ -92,6 +92,19 @@
         "label": "After successful unlock",
         "reveal_drive": "@:(panel.buttons.reveal)"
       },
+      "buttons": {
+        "change_password": "Change Password"
+      },
+      "change_password": {
+        "button": "Change",
+        "label": {
+          "newpassword": "Enter a new password",
+          "password": "Enter current password for \"{vaultname}\"",
+          "repeat": "Confirm the new password"
+        },
+        "notmatch": "@:(list.create.password.repeat.notmatch)",
+        "title": "@:(vault.options.buttons.change_password)"
+      },
       "mounting": "Mounting",
       "password": "Password",
       "readonly": {

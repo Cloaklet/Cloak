@@ -194,7 +194,7 @@ export default new Vuex.Store({
             })
         },
         updateVaultOptions({commit}, payload) {
-            axios.post(`${API}/api/vault/${payload.vaultId}/options`, {
+            return axios.post(`${API}/api/vault/${payload.vaultId}/options`, {
                 autoreveal: payload.autoreveal,
                 readonly: payload.readonly
             }).then(resp => {
@@ -202,6 +202,16 @@ export default new Vuex.Store({
                     return commit('setError', resp.data)
                 }
                 commit('updateVault', resp.data.item)
+            }).catch(err => {
+                return commit('setError', {code: -1, msg: err.message}) // FIXME
+            })
+        },
+        changeVaultPassword({commit}, payload) {
+            return axios.post(`${API}/api/vault/${payload.vaultId}/password`, {
+                password: payload.password,
+                newpassword: payload.newpassword
+            }).then(resp => {
+                commit('setError', resp.data)
             }).catch(err => {
                 return commit('setError', {code: -1, msg: err.message}) // FIXME
             })

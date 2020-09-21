@@ -71,4 +71,5 @@ var (
 	ErrVaultDirNotEmpty       = &ApiError{Code: 15, Message: "New vault directory is not empty"}
 	ErrVaultPasswordEmpty     = &ApiError{Code: 16, Message: "Password for the new vault is empty"}
 	ErrVaultInitConfFailed    = &ApiError{Code: 17, Message: "Could not create gocryptfs.conf for the new vault"}
+	ErrVaultUpdateConfFailed  = &ApiError{Code: 18, Message: "Gocryptfs could not write the updated gocryptfs.conf"}
 )

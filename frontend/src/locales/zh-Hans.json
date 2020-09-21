@@ -92,6 +92,19 @@
         "label": "解密成功后",
         "reveal_drive": "@:(panel.buttons.reveal)"
       },
+      "buttons": {
+        "change_password": "修改密码"
+      },
+      "change_password": {
+        "button": "修改",
+        "label": {
+          "newpassword": "输入新的密码",
+          "password": "输入「{vaultname}」当前的密码",
+          "repeat": "再次输入新的密码"
+        },
+        "notmatch": "@:(list.create.password.repeat.notmatch)",
+        "title": "@:(vault.options.buttons.change_password)"
+      },
       "mounting": "挂载",
       "password": "密码",
       "readonly": {

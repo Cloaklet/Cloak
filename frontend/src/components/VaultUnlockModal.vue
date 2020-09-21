@@ -27,7 +27,6 @@
         <button class="btn btn-primary"
                 :disabled="!password.length || $wait.is('unlocking')"
                 :class="{ loading: $wait.is('unlocking') }"
-                v-wait:click.start="'unlocking'"
                 @click="requestUnlockVault"
                 v-t="'misc.unlock'"></button>
         <button class="btn ml-1" aria-label="Close" @click="close" v-t="'misc.cancel'"></button>
@@ -54,6 +53,7 @@ export default {
       this.$emit('close')
     },
     requestUnlockVault() {
+      this.$wait.start('unlocking')
       this.$emit('unlock-vault-request', {
         vaultId: this.selectedVault.id,
         password: this.password
