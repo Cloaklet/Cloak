@@ -28,7 +28,7 @@
             </li>
           </ul>
           <div class="p-2 m-2" v-if="active === 'general'">
-            <div class="form-horizontal">
+            <div class="form-horizontal py-2">
               <div class="form-group">
                 <div class="col-5">
                   <label class="form-label" for="vault-options-autoreveal" v-t="'vault.options.autoreveal.label'"></label>
@@ -47,7 +47,7 @@
             </div>
           </div>
           <div class="p-2 m-2" v-else-if="active === 'mount'">
-            <div class="form-group">
+            <div class="form-group py-2">
               <label class="form-checkbox">
                 <input type="checkbox"
                        :checked="selectedVault.readonly"
@@ -58,7 +58,7 @@
             </div>
           </div>
           <div class="p-2 m-2" v-else-if="active === 'password'">
-            <div class="text-center">
+            <div class="text-center py-2">
               <button class="btn btn-block" @click="showPasswordChangingModal = true">
                 <i class="ri-key-2-fill"></i> {{ $t('vault.options.buttons.change_password') }}
               </button>
