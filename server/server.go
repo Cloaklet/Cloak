@@ -387,7 +387,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 				Str("mountPoint", *vault.MountPoint).
 				Bool("autoReveal", vault.AutoReveal).
 				Msg("Auto revealing mountpoint")
-			extension.OpenPath(*vault.MountPoint)
+			go extension.OpenPath(*vault.MountPoint)
 		}
 		// Respond
 		logger.Debug().
