@@ -50,7 +50,7 @@
           </div>
           <div class="p-2 m-2" v-else-if="active === 'mount'">
             <div class="form-group">
-              <label class="form-checkbox">
+              <label class="form-switch">
                 <input type="checkbox"
                        :checked="selectedVault.readonly"
                        v-wait:disabled="'updating vault options'"
@@ -62,7 +62,7 @@
               <label class="form-switch">
                 <input type="checkbox"
                        v-model="useCustomMountpoint"
-                       :disabled="$wait.is('updating vault options')">
+                       v-wait:disabled="'updating vault options'">
                 <i class="form-icon"></i> {{ $t('vault.options.mounting.manual') }}
               </label>
             </div>
