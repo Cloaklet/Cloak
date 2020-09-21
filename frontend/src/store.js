@@ -194,8 +194,7 @@ export default new Vuex.Store({
             })
         },
         updateVaultOptions({commit}, payload) {
-            axios.post(`${API}/api/vault/${payload.vaultId}`, {
-                op: 'update',
+            axios.post(`${API}/api/vault/${payload.vaultId}/options`, {
                 autoreveal: payload.autoreveal,
                 readonly: payload.readonly
             }).then(resp => {

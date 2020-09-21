@@ -166,7 +166,10 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		apis.GET("/vaults", server.ListVaults)
 		apis.DELETE("/vault/:id", server.RemoveVault)
 		apis.POST("/vaults", server.AddOrCreateVault)
+		// Unlock a vault / Lock a vault / reveal mountpoint for an unlocked vault
 		apis.POST("/vault/:id", server.OperateOnVault)
+		// Update vault options (autoreveal / readonly)
+		apis.POST("/vault/:id/options", server.UpdateVaultOptions)
 		apis.POST("/subpaths", server.ListSubPaths)
 		apis.GET("/options", server.GetOptions)
 	}
@@ -206,10 +209,8 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 	}
 
 	var form struct {
-		Op         string `json:"op"`         // lock/unlock/reveal/update
-		Password   string `json:"password"`   // for `lock` op only
-		AutoReveal bool   `json:"autoreveal"` // for `update` op only
-		ReadOnly   bool   `json:"readonly"`   // for `update` op only
+		Op       string `json:"op"`       // lock/unlock/reveal/update
+		Password string `json:"password"` // for `unlock` op only
 	}
 	if err := c.Bind(&form); err != nil {
 		return ErrMalformedInput
@@ -425,40 +426,58 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 
 		extension.OpenPath(mountPoint)
 		return ErrOk
-	} else if form.Op == "update" { // Update autoreveal / readonly settings
-		// Lock internal maps
-		s.lock.Lock()
-		defer s.lock.Unlock()
-
-		// Locate vault in repository
-		vault, err := s.repo.Get(vaultId, nil)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return ErrVaultNotExist
-			}
-			return err
-		}
-
-		// Vault must be locked to update its settings
-		if _, ok := s.mountPoints[vaultId]; ok {
-			return ErrVaultAlreadyUnlocked.WrapItem(VaultInfo{
-				Vault: vault,
-				State: "unlocked",
-			})
-		}
-
-		if err := s.repo.WithTransaction(func(tx models.Transactional) error {
-			vault.AutoReveal = form.AutoReveal
-			vault.ReadOnly = form.ReadOnly
-			return s.repo.Update(&vault, tx)
-		}); err != nil {
-			return err
-		}
-		return ErrOk.WrapItem(VaultInfo{State: "locked", Vault: vault})
 	} else {
 		// Currently not supported
 		return ErrUnsupportedOperation
 	}
+}
+
+// UpdateVaultOptions updates options for given vault
+func (s *ApiServer) UpdateVaultOptions(c echo.Context) error {
+	// Pre-check on ID
+	vaultId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return ErrMalformedInput
+	}
+
+	var form struct {
+		AutoReveal bool `json:"autoreveal"`
+		ReadOnly   bool `json:"readonly"`
+	}
+	if err := c.Bind(&form); err != nil {
+		return ErrMalformedInput
+	}
+
+	// Lock internal maps
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// Locate vault in repository
+	vault, err := s.repo.Get(vaultId, nil)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrVaultNotExist
+		}
+		return err
+	}
+
+	// Vault must be locked to update its settings
+	if _, ok := s.mountPoints[vaultId]; ok {
+		return ErrVaultAlreadyUnlocked.WrapItem(VaultInfo{
+			Vault: vault,
+			State: "unlocked",
+		})
+	}
+
+	if err := s.repo.WithTransaction(func(tx models.Transactional) error {
+		vault.AutoReveal = form.AutoReveal
+		vault.ReadOnly = form.ReadOnly
+		return s.repo.Update(&vault, tx)
+	}); err != nil {
+		return err
+	}
+	return ErrOk.WrapItem(VaultInfo{State: "locked", Vault: vault})
+}
 }
 
 // RemoveVault removes vault specified by ID from database repository,
