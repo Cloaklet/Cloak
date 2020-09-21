@@ -238,15 +238,14 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			return err
 		}
 		// Locate a mountpoint for this vault
-		if vault.MountPoint == nil || strings.TrimSpace(*vault.MountPoint) == "" {
+		if strings.TrimSpace(vault.MountPoint) == "" {
 			var mountPointBase string
 			if runtime.GOOS == "darwin" {
 				mountPointBase = "/Volumes"
 			} else {
 				mountPointBase = os.TempDir()
 			}
-			randomMountPoint := filepath.Join(mountPointBase, strconv.FormatInt(int64(rand.Int31()), 16))
-			vault.MountPoint = &randomMountPoint
+			vault.MountPoint = filepath.Join(mountPointBase, strconv.FormatInt(int64(rand.Int31()), 16))
 		}
 		// Start a gocryptfs process to unlock this vault
 		args := []string{"-fg"}
@@ -255,20 +254,20 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			args = append(args, "-ro")
 			logger.Debug().
 				Str("vaultPath", vault.Path).
-				Str("mountPoint", *vault.MountPoint).
+				Str("mountPoint", vault.MountPoint).
 				Bool("readOnly", vault.ReadOnly).
 				Msg("Vault is set to mount Read-Only")
 		}
-		args = append(args, "--", vault.Path, *vault.MountPoint)
+		args = append(args, "--", vault.Path, vault.MountPoint)
 		s.processes[vaultId] = exec.Command(s.cmd, args...)
-		s.mountPoints[vaultId] = *vault.MountPoint
+		s.mountPoints[vaultId] = vault.MountPoint
 
 		// Password is piped through STDIN
 		stdIn, err := s.processes[vaultId].StdinPipe()
 		if err != nil {
 			logger.Error().Err(err).
 				Str("vaultPath", vault.Path).
-				Str("mountPoint", *vault.MountPoint).
+				Str("mountPoint", vault.MountPoint).
 				Msg("Failed to create STDIN pipe")
 			defer delete(s.processes, vaultId)
 			defer delete(s.mountPoints, vaultId)
@@ -280,7 +279,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			if _, err := io.WriteString(stdIn, form.Password); err != nil {
 				logger.Error().Err(err).
 					Str("vaultPath", vault.Path).
-					Str("mountPoint", *vault.MountPoint).
+					Str("mountPoint", vault.MountPoint).
 					Msg("Failed to pipe vault password to gocryptfs")
 			}
 		}()
@@ -288,7 +287,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			logger.Error().Err(err).
 				Int64("vaultId", vaultId).
 				Str("vaultPath", vault.Path).
-				Str("mountPoint", *vault.MountPoint).
+				Str("mountPoint", vault.MountPoint).
 				Str("gocryptfs", s.cmd).
 				Msg("Failed to start gocryptfs process")
 
@@ -318,7 +317,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 						Int("RC", rc).
 						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
-						Str("mountPoint", *vault.MountPoint).
+						Str("mountPoint", vault.MountPoint).
 						Msg("Vault locked")
 					break
 				default:
@@ -326,14 +325,14 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 						Int("RC", rc).
 						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
-						Str("mountPoint", *vault.MountPoint).
+						Str("mountPoint", vault.MountPoint).
 						Msg("Gocryptfs exited unexpectedly")
 				}
 			} else {
 				logger.Debug().
 					Int64("vaultId", vaultId).
 					Str("vaultPath", vault.Path).
-					Str("mountPoint", *vault.MountPoint).
+					Str("mountPoint", vault.MountPoint).
 					Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
 			}
 		}()
@@ -353,7 +352,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Int("RC", rc).
 					Int64("vaultId", vaultId).
 					Str("vaultPath", vault.Path).
-					Str("mountPoint", *vault.MountPoint).
+					Str("mountPoint", vault.MountPoint).
 					Msg("Mountpoint not empty")
 				return ErrMountpointNotEmpty.WrapState("locked")
 			case 12: // Incorrect password
@@ -361,7 +360,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Int("RC", rc).
 					Int64("vaultId", vaultId).
 					Str("vaultPath", vault.Path).
-					Str("mountPoint", *vault.MountPoint).
+					Str("mountPoint", vault.MountPoint).
 					Msg("Vault password incorrect")
 				return ErrWrongPassword.WrapState("locked")
 			case 23: // gocryptfs.conf IO error
@@ -369,7 +368,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Int("RC", rc).
 					Int64("vaultId", vaultId).
 					Str("vaultPath", vault.Path).
-					Str("mountPoint", *vault.MountPoint).
+					Str("mountPoint", vault.MountPoint).
 					Msg("Gocryptfs cannot open gocryptfs.conf")
 				return ErrCantOpenVaultConf.WrapState("locked")
 			default:
@@ -377,7 +376,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Int("RC", rc).
 					Int64("vaultId", vaultId).
 					Str("vaultPath", vault.Path).
-					Str("mountPoint", *vault.MountPoint).
+					Str("mountPoint", vault.MountPoint).
 					Msg("Gocryptfs exited unexpectedly")
 				return ErrUnknown.Reformat(rc).WrapState("locked")
 			}
@@ -386,16 +385,16 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		if vault.AutoReveal {
 			logger.Debug().
 				Str("vaultPath", vault.Path).
-				Str("mountPoint", *vault.MountPoint).
+				Str("mountPoint", vault.MountPoint).
 				Bool("autoReveal", vault.AutoReveal).
 				Msg("Auto revealing mountpoint")
-			go extension.OpenPath(*vault.MountPoint)
+			go extension.OpenPath(vault.MountPoint)
 		}
 		// Respond
 		logger.Debug().
 			Int64("vaultId", vaultId).
 			Str("vaultPath", vault.Path).
-			Str("mountPoint", *vault.MountPoint).
+			Str("mountPoint", vault.MountPoint).
 			Msg("Vault unlocked")
 		return ErrOk.WrapState("unlocked")
 	} else if form.Op == "lock" {
@@ -445,8 +444,9 @@ func (s *ApiServer) UpdateVaultOptions(c echo.Context) error {
 	}
 
 	var form struct {
-		AutoReveal bool `json:"autoreveal"`
-		ReadOnly   bool `json:"readonly"`
+		AutoReveal bool   `json:"autoreveal"`
+		ReadOnly   bool   `json:"readonly"`
+		Mountpoint string `json:"mountpoint"`
 	}
 	if err := c.Bind(&form); err != nil {
 		return ErrMalformedInput
@@ -476,6 +476,7 @@ func (s *ApiServer) UpdateVaultOptions(c echo.Context) error {
 	if err := s.repo.WithTransaction(func(tx models.Transactional) error {
 		vault.AutoReveal = form.AutoReveal
 		vault.ReadOnly = form.ReadOnly
+		vault.MountPoint = strings.TrimSpace(form.Mountpoint)
 		return s.repo.Update(&vault, tx)
 	}); err != nil {
 		return err

@@ -6,7 +6,6 @@ import (
 	"Cloak/models"
 	"Cloak/server"
 	"database/sql"
-	"fmt"
 	"github.com/getlantern/systray"
 	"github.com/lopezator/migrator"
 	_ "github.com/mattn/go-sqlite3"
@@ -38,31 +37,7 @@ func (a *App) stop() {
 func (a *App) Migrate() {
 	m, err := migrator.New(
 		migrator.WithLogger(&logPrinter{}),
-		migrator.Migrations(
-			&migrator.Migration{
-				Name: "Create vaults table",
-				Func: func(tx *sql.Tx) error {
-					_, err := tx.Exec(`CREATE TABLE IF NOT EXISTS vaults (
-    id INTEGER PRIMARY KEY,
-    path TEXT NOT NULL UNIQUE,
-    mountpoint TEXT UNIQUE
-);`)
-					return err
-				},
-			},
-			&migrator.Migration{
-				Name: "Add autoreveal & readonly column",
-				Func: func(tx *sql.Tx) error {
-					for _, column := range []string{"autoreveal", "readonly"} {
-						_, err := tx.Exec(fmt.Sprintf(`ALTER TABLE vaults ADD COLUMN %s BOOLEAN DEFAULT false;`, column))
-						if err != nil {
-							return err
-						}
-					}
-					return nil
-				},
-			},
-		),
+		migrator.Migrations(migrations...),
 	)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to init migrations")

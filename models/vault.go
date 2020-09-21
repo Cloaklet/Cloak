@@ -3,11 +3,11 @@ package models
 import "database/sql"
 
 type Vault struct {
-	ID         int64   `db:"column:id;" json:"id"`
-	Path       string  `db:"column:path;" json:"path"`
-	MountPoint *string `db:"column:mountpoint;" json:"mountpoint"`
-	AutoReveal bool    `db:"column:autoreveal;" json:"autoreveal"`
-	ReadOnly   bool    `db:"column:readonly;" json:"readonly"`
+	ID         int64  `db:"column:id;" json:"id"`
+	Path       string `db:"column:path;" json:"path"`
+	MountPoint string `db:"column:mountpoint;" json:"mountpoint"`
+	AutoReveal bool   `db:"column:autoreveal;" json:"autoreveal"`
+	ReadOnly   bool   `db:"column:readonly;" json:"readonly"`
 }
 
 type VaultRepo struct {
@@ -24,9 +24,8 @@ func (r *VaultRepo) Create(values map[string]interface{}, tx Transactional) (vau
 		tx = r.db
 	}
 	vault.Path = values["path"].(string)
-	if v, ok := values["mountpoint"]; ok && (v != "") {
-		mountpoint := v.(string)
-		vault.MountPoint = &mountpoint
+	if v, ok := values["mountpoint"].(string); ok && (v != "") {
+		vault.MountPoint = v
 	}
 	if v, ok := values["autoreveal"].(bool); ok {
 		vault.AutoReveal = v
