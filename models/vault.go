@@ -37,7 +37,7 @@ func (r *VaultRepo) Create(values map[string]interface{}, tx Transactional) (vau
 
 	var result sql.Result
 	result, err = tx.Exec(
-		`INSERT INTO vaults (path, mountpoint) VALUES (?, ?, ?, ?);`,
+		`INSERT INTO vaults (path, mountpoint, autoreveal, readonly) VALUES (?, ?, ?, ?);`,
 		vault.Path, vault.MountPoint, vault.AutoReveal, vault.ReadOnly,
 	)
 	if err != nil {
