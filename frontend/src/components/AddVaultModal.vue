@@ -54,7 +54,7 @@
                           v-t="'select.file'"></button>
                 </div>
               </div>
-              <div class="form-group">
+              <div class="form-group" :class="{ 'has-error': passwordStrengthHint }">
                 <label for="create-vault-password"
                        class="form-label"
                        v-t="'list.create.password.label'"></label>
@@ -62,6 +62,13 @@
                        class="form-input"
                        id="create-vault-password"
                        v-model="createVaultPassword">
+                <Password class="password-strength-meter"
+                          v-model="createVaultPassword"
+                          :strength-meter-only="true"
+                          :secureLength="8"
+                          @feedback="showPasswordFeedback"/>
+                <p class="form-input-hint"
+                   v-if="passwordStrengthHint">{{ passwordStrengthHint }}</p>
               </div>
               <div class="form-group" :class="{ 'has-error': !passwordMatch }">
                 <label for="create-vault-password-repeat"
@@ -128,11 +135,13 @@
 
 <script>
 import FileSelectionModal from './FileSelectionModal'
+import Password from 'vue-password-strength-meter'
 
 export default {
   name: "AddVaultModal",
   components: {
-    FileSelectionModal
+    FileSelectionModal,
+    Password
   },
   data: function() {
     return {
@@ -144,6 +153,7 @@ export default {
       showFileSelection: false,
       createVaultPassword: '',
       createVaultPasswordCheck: '',
+      passwordStrengthHint: ''
     }
   },
   computed: {
@@ -151,7 +161,11 @@ export default {
       return this.createVaultPassword === this.createVaultPasswordCheck
     },
     canCreate() {
-      return this.createVaultName && this.createVaultDir && this.createVaultPassword && this.passwordMatch
+      return this.createVaultName &&
+          this.createVaultDir &&
+          this.createVaultPassword.length > 8 &&
+          this.passwordStrengthHint &&
+          this.passwordMatch
     },
   },
   methods: {
@@ -176,10 +190,30 @@ export default {
     requestAddVault() {
       this.$emit('add-vault-request', {path: this.addVaultFile})
     },
+    showPasswordFeedback({suggestions, warning}) {
+      console.log(suggestions, warning) // FIXME
+      if (warning) {
+        this.passwordStrengthHint = warning
+        return
+      }
+      for (const sug of suggestions) {
+        this.passwordStrengthHint = sug
+        return
+      }
+      this.passwordStrengthHint = ''
+    }
   },
 }
 </script>
 
 <style scoped>
-
+.password-strength-meter {
+  max-width: unset;
+}
+.form-input-hint {
+  margin: 0;
+}
+/deep/ .Password__strength-meter {
+  margin: .3rem auto;
+}
 </style>
