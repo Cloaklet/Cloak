@@ -680,79 +680,29 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 			return ErrVaultMkdirFailed.Reformat(err)
 		}
 
-		// Start a gocryptfs process to init this vault
-		initProc := exec.Command(s.cmd, "-init", "--", vaultPath)
-		// Password is piped through STDIN
-		stdIn, err := initProc.StdinPipe()
-		var errorOutput bytes.Buffer
-		initProc.Stderr = &errorOutput
+		err := s.GocryptfsCreateVault(vaultPath, form.Password)
 		if err != nil {
-			logger.Error().Err(err).
-				Str("vaultDirectroy", form.Path).
-				Str("vaultName", form.Name).
-				Msg("Failed to create STDIN pipe when initializing new vault")
 			return err
 		}
 
-		go func() {
-			defer stdIn.Close()
-			if _, err := io.WriteString(stdIn, form.Password); err != nil {
-				logger.Error().Err(err).
-					Str("vaultDirectroy", form.Path).
-					Str("vaultName", form.Name).
-					Msg("Failed to pipe vault password to gocryptfs when initializing new vault")
-			}
-		}()
-
 		// Vault created, add to vault repository
-		if err := initProc.Run(); err == nil {
-			logger.Info().
-				Str("vaultDirectroy", form.Path).
-				Str("vaultName", form.Name).
-				Msg("Vault initialized on disk")
-			var vault models.Vault
-			if err := s.repo.WithTransaction(func(tx models.Transactional) error {
-				vault, err = s.repo.Create(echo.Map{"path": vaultPath}, tx)
-				if err != nil {
-					logger.Error().Err(err).
-						Str("vaultPath", vaultPath).
-						Msg("Failed to add newly created vault")
-				}
-				return err
-			}); err != nil {
-				return err
+		var vault models.Vault
+		if err := s.repo.WithTransaction(func(tx models.Transactional) error {
+			vault, err = s.repo.Create(echo.Map{"path": vaultPath}, tx)
+			if err != nil {
+				logger.Error().Err(err).
+					Str("vaultPath", vaultPath).
+					Msg("Failed to add newly created vault")
 			}
-			logger.Debug().
-				Str("vaultPath", vaultPath).
-				Int64("vaultId", vault.ID).
-				Msg("Added newly created vault")
-			return ErrOk.WrapItem(VaultInfo{
-				Vault: vault,
-				State: "locked",
-			})
-		} else { // Failed to init vault, inspect error and respond to UI
-			rc := initProc.ProcessState.ExitCode()
-			errString := errorOutput.String()
-			errlog := logger.With().Err(err).
-				Int("RC", rc).
-				Str("vaultPath", vaultPath).
-				Str("stdErr", errString).
-				Logger()
-			switch rc {
-			case 6:
-				errlog.Error().Msg("New vault directory (CIPHERDIR) is not empty")
-				return ErrVaultDirNotEmpty
-			case 22:
-				errlog.Error().Msg("Password for new vault is empty")
-				return ErrVaultPasswordEmpty
-			case 24:
-				errlog.Error().Msg("Gocryptfs could not create gocryptfs.conf")
-				return ErrVaultInitConfFailed
-			default:
-				errlog.Error().Msg("Unknown error when initializing new vault")
-				return ErrUnknown.Reformat(errString)
-			}
+			return err
+		}); err != nil {
+			return err
 		}
+		logger.Debug().
+			Str("vaultPath", vaultPath).
+			Int64("vaultId", vault.ID).
+			Msg("Added newly created vault")
+		return ErrOk.WrapItem(VaultInfo{Vault: vault, State: "locked"})
 
 	} else {
 		// Currently not supported
