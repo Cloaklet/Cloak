@@ -5,7 +5,6 @@ import (
 	"Cloak/models"
 	_ "Cloak/statik"
 	"Cloak/version"
-	"bytes"
 	"context"
 	"database/sql"
 	"github.com/labstack/echo/v4"
@@ -522,60 +521,10 @@ func (s *ApiServer) ChangeVaultPassword(c echo.Context) error {
 	}
 
 	// Start a gocryptfs process to change password
-	chPwProc := exec.Command(s.cmd, "-passwd", "--", vault.Path)
-	// Password is piped through STDIN
-	stdIn, err := chPwProc.StdinPipe()
-	var errorOutput bytes.Buffer
-	chPwProc.Stderr = &errorOutput
-	if err != nil {
-		logger.Error().Err(err).
-			Str("vaultDirectroy", vault.Path).
-			Msg("Failed to create STDIN pipe when changing password for vault")
+	if err = s.GocryptfsChangeVaultPassword(vault.Path, form.Password, form.NewPassword); err != nil {
 		return err
 	}
-
-	go func() {
-		defer stdIn.Close()
-		passwords := strings.Join([]string{form.Password, form.NewPassword}, "\n")
-		if _, err := io.WriteString(stdIn, passwords); err != nil {
-			logger.Error().Err(err).
-				Str("vaultDirectroy", vault.Path).
-				Msg("Failed to pipe passwords to gocryptfs when changing password for vault")
-		}
-	}()
-
-	// Vault created, add to vault repository
-	if err := chPwProc.Run(); err == nil {
-		logger.Info().
-			Str("vaultDirectroy", vault.Path).
-			Int64("vaultId", vault.ID).
-			Msg("Vault password changed")
-		return ErrOk
-	} else { // Failed to init vault, inspect error and respond to UI
-		rc := chPwProc.ProcessState.ExitCode()
-		errString := errorOutput.String()
-		errlog := logger.With().Err(err).
-			Int("RC", rc).
-			Str("vaultDirectroy", vault.Path).
-			Int64("vaultId", vault.ID).
-			Str("stdErr", errString).
-			Logger()
-		switch rc {
-		case 12:
-			errlog.Error().Msg("Password incorrect")
-			return ErrWrongPassword
-		case 23:
-			errlog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
-			return ErrCantOpenVaultConf
-		case 24:
-			errlog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
-			return ErrVaultUpdateConfFailed
-		default:
-			errlog.Error().Msg("Unknown error when changing password for vault")
-			return ErrUnknown.Reformat(errString)
-		}
-	}
-
+	return ErrOk
 }
 
 // RemoveVault removes vault specified by ID from database repository,
