@@ -176,6 +176,6 @@ func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (s
 			return masterkey, ErrUnknown.Reformat(errString)
 		}
 	}
-	masterkey = stdOutput.String()
+	masterkey = strings.TrimSpace(stdOutput.String())
 	return masterkey, nil
 }
