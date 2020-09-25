@@ -84,6 +84,11 @@
                 <i class="ri-key-2-fill"></i> {{ $t('vault.options.buttons.change_password') }}
               </button>
             </div>
+            <div class="text-center mt-2">
+              <button class="btn btn-block" @click="showMasterkeyModal = true">
+                <i class="ri-eye-fill"></i> {{ $t('vault.options.buttons.reveal_masterkey') }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -97,6 +102,7 @@
                         @close="mountpointSelectionClosed"
                         @selected="setVaultMountpoint"
                         mode="directory"/>
+    <VaultMasterkeyModal v-if="showMasterkeyModal" @close="showMasterkeyModal = false"/>
   </div>
 </template>
 
@@ -104,14 +110,16 @@
 import {mapGetters} from 'vuex'
 import VaultPasswordChangingModal from "@/components/VaultPasswordChangingModal";
 import FileSelectionModal from "@/components/FileSelectionModal";
+import VaultMasterkeyModal from "@/components/VaultMasterkeyModal";
 
 export default {
   name: "VaultOptionsModal",
-  components: {FileSelectionModal, VaultPasswordChangingModal},
+  components: {VaultMasterkeyModal, FileSelectionModal, VaultPasswordChangingModal},
   data: function() {
     return {
       active: 'general',
       showPasswordChangingModal: false,
+      showMasterkeyModal: false,
       showMountpointSelectionModal: false,
       useCustomMountpoint: null
     }

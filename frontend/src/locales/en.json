@@ -56,7 +56,10 @@
     "add": "Add",
     "back": "Back",
     "cancel": "Cancel",
+    "copied": "Copied",
+    "copy_failed": "Failed to copy",
     "create": "Create",
+    "done": "Done",
     "open": "Open",
     "select": "Select",
     "unlock": "Unlock"
@@ -93,7 +96,8 @@
         "reveal_drive": "@:(panel.buttons.reveal)"
       },
       "buttons": {
-        "change_password": "Change Password"
+        "change_password": "Change Password",
+        "reveal_masterkey": "Show Master Key"
       },
       "change_password": {
         "button": "Change",
@@ -104,6 +108,16 @@
         },
         "notmatch": "@:(list.create.password.repeat.notmatch)",
         "title": "@:(vault.options.buttons.change_password)"
+      },
+      "masterkey": {
+        "description": "If you ever forget your password, the following master key is the only way to restore access to \"{vaultname}\"",
+        "keep_description": "Keep it somewhere very secure, e.g.:",
+        "keep_note": {
+          "note_1":  "Store it using a password manager",
+          "note_2": "Print it on paper and store it in a drawer"
+        },
+        "title": "Master Key",
+        "view": "View"
       },
       "mounting": {
         "manual": "Mount to custom location",

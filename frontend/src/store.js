@@ -216,6 +216,18 @@ export default new Vuex.Store({
             }).catch(err => {
                 return commit('setError', {code: -1, msg: err.message}) // FIXME
             })
+        },
+        revealVaultMasterkey({commit}, payload) {
+            return axios.post(`${API}/api/vault/${payload.vaultId}/masterkey`, {
+                password: payload.password,
+            }).then(resp => {
+                if (resp.data.code !== 0) {
+                    return commit('setError', resp.data)
+                }
+                return resp.data.item // <- this is the masterkey
+            }).catch(err => {
+                return commit('setError', {code: -1, msg: err.message}) // FIXME
+            })
         }
     }
 })

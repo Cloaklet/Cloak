@@ -56,7 +56,10 @@
     "add": "添加",
     "back": "返回",
     "cancel": "取消",
+    "copied": "已复制",
+    "copy_failed": "复制失败",
     "create": "创建",
+    "done": "完成",
     "open": "打开",
     "select": "选择",
     "unlock": "解密"
@@ -93,7 +96,8 @@
         "reveal_drive": "@:(panel.buttons.reveal)"
       },
       "buttons": {
-        "change_password": "修改密码"
+        "change_password": "修改密码",
+        "reveal_masterkey": "显示 Master Key"
       },
       "change_password": {
         "button": "修改",
@@ -104,6 +108,16 @@
         },
         "notmatch": "@:(list.create.password.repeat.notmatch)",
         "title": "@:(vault.options.buttons.change_password)"
+      },
+      "masterkey": {
+        "description": "如果您忘记了密码，此密钥将是您访问「{vaultname}」的唯一途径",
+        "keep_description": "将它保存在特别安全的地方，例如：",
+        "keep_note": {
+          "note_1":  "将它保存到密码管理器中",
+          "note_2": "将它打印在纸上，并锁在抽屉中"
+        },
+        "title": "Master Key",
+        "view": "查看"
       },
       "mounting": {
         "manual": "将解密内容挂载到自定义位置",
