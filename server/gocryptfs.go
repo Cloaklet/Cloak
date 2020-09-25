@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -118,6 +119,63 @@ func (s *ApiServer) GocryptfsChangeVaultPassword(path string, password string, n
 
 // GocryptfsShowVaultMasterkey reveals masterkey for vault identified by `path` directory.
 // Returns (masterkey, error).
-func GocryptfsShowVaultMasterkey(path string, password string) (string, error) {
-	return "", nil // FIXME
+// Notice: `path` is the path to the vault directory.
+func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (string, error) {
+	var err error
+	var masterkey string
+
+	vaultConfigPath := filepath.Join(path, "gocryptfs.conf")
+	xrayProc := exec.Command(s.xrayCmd, "-dumpmasterkey", vaultConfigPath)
+	// Password is piped through STDIN
+	stdIn, err := xrayProc.StdinPipe()
+	var errorOutput, stdOutput bytes.Buffer
+	xrayProc.Stderr = &errorOutput
+	xrayProc.Stdout = &stdOutput
+	if err != nil {
+		logger.Error().Err(err).
+			Str("vaultPath", path).
+			Msg("Failed to create STDIN pipe when revealing masterkey for vault")
+		return masterkey, err
+	}
+
+	go func() {
+		defer stdIn.Close()
+		if _, err := io.WriteString(stdIn, password); err != nil {
+			logger.Error().Err(err).
+				Str("vaultPath", path).
+				Msg("Failed to pipe passwords to gocryptfs when revealing masterkey for vault")
+		}
+	}()
+
+	// Vault created, add to vault repository
+	if err := xrayProc.Run(); err != nil { // Failed to init vault, inspect error and respond to UI
+		rc := xrayProc.ProcessState.ExitCode()
+		errString := errorOutput.String()
+		outString := stdOutput.String()
+		errlog := logger.With().Err(err).
+			Int("RC", rc).
+			Str("vaultPath", path).
+			Str("stdErr", errString).
+			Str("stdOut", outString).
+			Logger()
+		switch rc {
+		case 12:
+			errlog.Error().Msg("Password incorrect")
+			return masterkey, ErrWrongPassword
+		case 23:
+			errlog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
+			return masterkey, ErrCantOpenVaultConf
+		case 24:
+			errlog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
+			return masterkey, ErrVaultUpdateConfFailed
+		default:
+			errlog.Error().Msg("Unknown error when changing password for vault")
+			if strings.TrimSpace(errString) == "" {
+				errString = outString
+			}
+			return masterkey, ErrUnknown.Reformat(errString)
+		}
+	}
+	masterkey = stdOutput.String()
+	return masterkey, nil
 }

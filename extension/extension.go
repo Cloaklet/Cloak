@@ -32,16 +32,16 @@ func OpenPath(path string) {
 	openPath(path)
 }
 
-// LocateGocryptfsBinary locates gocryptfs binary and returns its absolute path.
+// LocateBinary locates executable binary of given name and returns its absolute path.
 // It first looks for the binary in the same directory as current running executable,
 // then falls back to anything found in PATH environment.
-func LocateGocryptfsBinary() (string, error) {
-	if executable, err := os.Executable(); err != nil {
+func LocateBinary(executable string) (string, error) {
+	if self, err := os.Executable(); err != nil {
 		return "", err
 	} else {
-		path := filepath.Join(filepath.Dir(executable), "gocryptfs")
+		path := filepath.Join(filepath.Dir(self), executable)
 		if _, err = os.Stat(path); err != nil {
-			return exec.LookPath("gocryptfs")
+			return exec.LookPath(executable)
 		}
 		return path, nil
 	}

@@ -37,6 +37,7 @@ type ApiServer struct {
 	repo          *models.VaultRepo   // database repository
 	echo          *echo.Echo          // the actual HTTP server
 	cmd           string              // `gocryptfs` binary path
+	xrayCmd       string              // `gocryptfs-xray` binary path
 	fuseAvailable bool                // whether FUSE is available
 	processes     map[int64]*exec.Cmd // vaultID: process
 	mountPoints   map[int64]string    // vaultID: mountPoint
@@ -87,6 +88,7 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		repo:          repo,
 		echo:          echo.New(),
 		cmd:           "",
+		xrayCmd:       "",
 		fuseAvailable: extension.IsFuseAvailable(),
 		processes:     map[int64]*exec.Cmd{},
 		mountPoints:   map[int64]string{},
@@ -94,11 +96,17 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 
 	// Detect external runtime dependencies
 	var err error
-	if server.cmd, err = extension.LocateGocryptfsBinary(); err != nil {
+	if server.cmd, err = extension.LocateBinary("gocryptfs"); err != nil {
 		logger.Error().Err(err).
 			Msg("Failed to locate gocryptfs binary, nothing will work")
 	} else {
 		logger.Debug().Str("gocryptfs", server.cmd).Msg("Gocryptfs binary located")
+	}
+	if server.xrayCmd, err = extension.LocateBinary("gocryptfs-xray"); err != nil {
+		logger.Error().Err(err).
+			Msg("Failed to locate gocryptfs-xray binary, masterkey revealing will not work")
+	} else {
+		logger.Debug().Str("gocryptfs-xray", server.xrayCmd).Msg("gocryptfs-xray binary located")
 	}
 	logger.Debug().Bool("fuseAvailable", server.fuseAvailable).Msg("FUSE detection finished")
 
@@ -171,6 +179,9 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		apis.POST("/vault/:id/options", server.UpdateVaultOptions)
 		// Change vault password
 		apis.POST("/vault/:id/password", server.ChangeVaultPassword)
+		// Reveal vault masterkey
+		apis.POST("/vault/:id/masterkey", server.RevealVaultMasterkey)
+		// List local disk content
 		apis.POST("/subpaths", server.ListSubPaths)
 		apis.GET("/options", server.GetOptions)
 	}
@@ -767,4 +778,41 @@ func (s *ApiServer) GetOptions(c echo.Context) error {
 			"gitCommit": version.GitCommit,
 		},
 	})
+}
+
+// RevealVaultMasterkey returns masterkey for given vault.
+func (s *ApiServer) RevealVaultMasterkey(c echo.Context) error {
+	if s.xrayCmd == "" {
+		return ErrMissingGocryptfsXrayBinary
+	}
+
+	// Pre-check on ID
+	vaultId, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return ErrMalformedInput
+	}
+
+	var form struct {
+		Password string `json:"password"`
+	}
+	if err := c.Bind(&form); err != nil {
+		return ErrMalformedInput
+	} else if form.Password == "" {
+		return ErrMalformedInput
+	}
+
+	vault, err := s.repo.Get(vaultId, nil)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrVaultNotExist
+		}
+		return err
+	}
+
+	masterKey, err := s.GocryptfsShowVaultMasterkey(vault.Path, form.Password)
+	if err != nil {
+		return err
+	}
+
+	return ErrOk.WrapItem(masterKey)
 }
