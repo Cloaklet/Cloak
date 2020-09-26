@@ -1,4 +1,7 @@
-language: generic
+language: go
+
+go:
+  - 1.14
 
 os:
   - linux
@@ -14,19 +17,9 @@ addons:
       - gcc
       - libgtk-3-dev
 
-jobs:
-  include:
-    - stage: test
-      language: go
-      go:
-        - 1.14
-      script: go test -v ./...
-    - stage: app-bundle
-      language: go
-      go:
-        - 1.14
-      before_script:
-        - nvm install --lts
-        - nvm use --lts
-      script:
-        - cd frontend && npm install && cd .. && go run build.go build
+before_script:
+  - nvm install --lts
+  - nvm use --lts
+script:
+  - go test -v ./...
+  - cd frontend && npm install && cd .. && go run build.go build
