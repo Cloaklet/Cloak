@@ -16,16 +16,17 @@ addons:
 
 jobs:
   include:
-    - stage: frontend-prepare
-      language: node_js
-      node_js:
-        - 12
-      script:
-        - cd frontend
-        - npm install
+    - stage: test
+      language: go
+      go:
+        - 1.14
+      script: go test -v ./...
     - stage: app-bundle
       language: go
       go:
         - 1.14
+      before_script:
+        - nvm install --lts
+        - nvm use --lts
       script:
-        - go run build.go build
+        - cd frontend && npm install && cd .. && go run build.go build
