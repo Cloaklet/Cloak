@@ -257,6 +257,19 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			}
 			vault.MountPoint = filepath.Join(mountPointBase, strconv.FormatInt(int64(rand.Int31()), 16))
 		}
+		// OSXFUSE will create mountpoint for us if it's located in `/Volumes`,
+		// but for Linux we'll have to do the mkdir ourselves.
+		shouldRemoveMountpoint := false
+		if runtime.GOOS != "darwin" {
+			if err := os.MkdirAll(vault.MountPoint, 0700); err != nil {
+				logger.Error().Err(err).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", vault.MountPoint).
+					Msg("Failed to create mountpoint directory")
+				return ErrMountpointMkdirFailed
+			}
+			shouldRemoveMountpoint = true
+		}
 		// Start a gocryptfs process to unlock this vault
 		args := []string{"-fg"}
 		// Readonly mode
@@ -344,6 +357,17 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Str("vaultPath", vault.Path).
 					Str("mountPoint", vault.MountPoint).
 					Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
+			}
+
+			// Remove mountpoint directory if we created it
+			if shouldRemoveMountpoint {
+				if err = os.Remove(vault.MountPoint); err != nil {
+					logger.Error().Err(err).
+						Int64("vaultId", vaultId).
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", vault.MountPoint).
+						Msg("Failed to remove mountpoint directory")
+				}
 			}
 		}()
 

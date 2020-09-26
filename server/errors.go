@@ -73,4 +73,5 @@ var (
 	ErrVaultInitConfFailed        = &ApiError{Code: 17, Message: "Could not create gocryptfs.conf for the new vault"}
 	ErrVaultUpdateConfFailed      = &ApiError{Code: 18, Message: "Gocryptfs could not write the updated gocryptfs.conf"}
 	ErrMissingGocryptfsXrayBinary = &ApiError{Code: 19, Message: "Cannot locate gocryptfs-xray binary"}
+	ErrMountpointMkdirFailed      = &ApiError{Code: 20, Message: "Failed to create mountpoint directory"}
 )
