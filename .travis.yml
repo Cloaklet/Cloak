@@ -2,13 +2,6 @@ os:
   - linux
   - osx
 
-language: go
-go:
-  - 1.14
-
-node_js:
-  - 12
-
 env:
   - GO111MODULE=on
 
@@ -19,8 +12,18 @@ addons:
       - gcc
       - libgtk-3-dev
 
-script:
-  - cd frontend
-  - npm install
-  - cd ..
-  - go run build.go build
+jobs:
+  include:
+    - stage: frontend-prepare
+      language: node_js
+      node_js:
+        - 12
+      script:
+        - cd frontend
+        - npm install
+    - stage: app-bundle
+      language: go
+      go:
+        - 1.14
+      script:
+        - go run build.go build
