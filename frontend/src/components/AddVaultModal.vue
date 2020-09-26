@@ -164,7 +164,7 @@ export default {
       return this.createVaultName &&
           this.createVaultDir &&
           this.createVaultPassword.length > 8 &&
-          this.passwordStrengthHint &&
+          !this.passwordStrengthHint &&
           this.passwordMatch
     },
   },
