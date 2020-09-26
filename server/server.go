@@ -297,6 +297,8 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			return err
 		}
 
+		rcPipe := make(chan int)
+
 		go func() {
 			defer stdIn.Close()
 			if _, err := io.WriteString(stdIn, form.Password); err != nil {
@@ -317,6 +319,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			// Cleanup immediately
 			defer delete(s.processes, vaultId)
 			defer delete(s.mountPoints, vaultId)
+			defer close(rcPipe)
 
 			return err
 		}
@@ -324,13 +327,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		// Need to wait for this process to exit, otherwise it becomes zombie after exiting.
 		go func() {
 			proc := s.processes[vaultId]
-			err := proc.Wait()
-			s.lock.Lock()
-			defer s.lock.Unlock()
-			defer delete(s.processes, vaultId)
-			defer delete(s.mountPoints, vaultId)
-
-			if err != nil {
+			if err := proc.Wait(); err != nil {
 				rc := proc.ProcessState.ExitCode()
 				switch rc {
 				case 10, 12, 23: // These are known errors meant to be reported directly to the UI
@@ -351,17 +348,26 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 						Str("mountPoint", vault.MountPoint).
 						Msg("Gocryptfs exited unexpectedly")
 				}
+				rcPipe <- rc
 			} else {
 				logger.Debug().
 					Int64("vaultId", vaultId).
 					Str("vaultPath", vault.Path).
 					Str("mountPoint", vault.MountPoint).
 					Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
+				rcPipe <- 0
 			}
+
+			// Cleanup
+			s.lock.Lock()
+			defer s.lock.Unlock()
+			defer delete(s.processes, vaultId)
+			defer delete(s.mountPoints, vaultId)
+			defer close(rcPipe)
 
 			// Remove mountpoint directory if we created it
 			if shouldRemoveMountpoint {
-				if err = os.Remove(vault.MountPoint); err != nil {
+				if err := os.Remove(vault.MountPoint); err != nil {
 					logger.Error().Err(err).
 						Int64("vaultId", vaultId).
 						Str("vaultPath", vault.Path).
@@ -371,15 +377,11 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			}
 		}()
 
-		// TODO How to improve this?
 		// Wait for a little time, then check if gocryptfs process is alive
 		// If it exited, there's something wrong, respond to the UI
-		time.Sleep(time.Second * 1)
-		if s.processes[vaultId].ProcessState != nil {
-			defer delete(s.processes, vaultId)
-			defer delete(s.mountPoints, vaultId)
-
-			rc := s.processes[vaultId].ProcessState.ExitCode()
+		timer := time.NewTimer(time.Second)
+		select {
+		case rc := <-rcPipe:
 			switch rc {
 			case 10: // Mountpoint not empty
 				logger.Error().Err(err).
@@ -414,6 +416,16 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 					Msg("Gocryptfs exited unexpectedly")
 				return ErrUnknown.Reformat(rc).WrapState("locked")
 			}
+		case <-timer.C:
+			logger.Debug().
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Vault unlocked")
+			// Read from rcPipe, otherwise the `Wait` goroutine will block after gocryptfs exited
+			go func() {
+				<-rcPipe
+			}()
 		}
 
 		if vault.AutoReveal {
@@ -425,11 +437,6 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 			go extension.OpenPath(vault.MountPoint)
 		}
 		// Respond
-		logger.Debug().
-			Int64("vaultId", vaultId).
-			Str("vaultPath", vault.Path).
-			Str("mountPoint", vault.MountPoint).
-			Msg("Vault unlocked")
 		return ErrOk.WrapState("unlocked")
 	} else if form.Op == "lock" {
 		// Check current state
