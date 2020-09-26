@@ -91,8 +91,45 @@ func buildForTarget(c context.Context) (output string, err error) {
 		output = `Cloak.app`
 		return
 	case "linux":
-		output = executable
-		return
+		executableDir := filepath.Join("AppDir", "usr", "bin")
+		if err = os.MkdirAll(executableDir, 0755); err != nil {
+			return
+		}
+
+		files := map[string]string{
+			"gocryptfs":      filepath.Join(executableDir, "gocryptfs"),
+			"gocryptfs-xray": filepath.Join(executableDir, "gocryptfs-xray"),
+		}
+		for filename, _ := range files {
+			if err := sh.Copy(files[filename], filename); err != nil {
+				return output, err
+			}
+		}
+
+		// Locate linuxdeploy tool
+		var linuxDeploy string
+		if linuxDeploy, err = exec.LookPath("linuxdeploy.AppImage"); err != nil {
+			if _, err = os.Stat("./linuxdeploy.AppImage"); err != nil {
+				return output, fmt.Errorf("Cannot locate the required tool 'linuxdeploy.AppImage'")
+			} else {
+				linuxDeploy = "./linuxdeploy.AppImage"
+			}
+		}
+
+		// Pack AppImage binary
+		err = sh.RunWithV(
+			map[string]string{
+				"VERSION": versionString,
+			},
+			linuxDeploy,
+			`--executable`, executable,
+			`--appdir`, `AppDir`,
+			`--desktop-file`, `Cloak.desktop`,
+			`--icon-file`, `Cloak.svg`,
+			`--output`, `appimage`,
+		)
+		output = fmt.Sprintf(`Cloak-%s-%s.AppImage`, versionString, linuxArch(env["GOARCH"]))
+		return output, err
 	default:
 		err = fmt.Errorf("unsupported OS: %s", env["GOOS"])
 		return
@@ -153,14 +190,18 @@ func Clean(c context.Context) error {
 	goOs := c.Value(osKey).(string)
 	switch goOs {
 	case "darwin":
-		os.RemoveAll(`Cloak.app`)
-		os.RemoveAll("cloak")
+		sh.Rm("Cloak.app")
+		sh.Rm("cloak")
+		sh.Rm("Cloak")
 	case "linux":
-		os.RemoveAll("cloak")
+		sh.Rm("cloak")
+		sh.Rm("Cloak")
+		sh.Rm("AppDir")
 	default:
 		return fmt.Errorf("Unsupported OS: %s", goOs)
 	}
-	os.RemoveAll(`gocryptfs`)
+	sh.Rm("gocryptfs")
+	sh.Rm("gocryptfs-xray")
 	//os.RemoveAll(`rsrc.syso`)
 	return nil
 }
@@ -187,6 +228,17 @@ func downloadExecutable(url string, name string) error {
 	return os.Chmod(name, 0755)
 }
 
+func linuxArch(goArch string) string {
+	archString, ok := map[string]string{
+		"386": "i386",
+		"amd64": "x86_64",
+	}[goArch]
+	if !ok {
+		panic(fmt.Errorf("Unsupported architecture: %s", goArch))
+	}
+	return archString
+}
+
 // Download static build binary of gocryptfs
 func DownloadExternalTools(c context.Context) error {
 	cloakVersion := "0.0.1"
@@ -205,6 +257,12 @@ func DownloadExternalTools(c context.Context) error {
 			if err := downloadExecutable(toolUrl, name); err != nil {
 				return err
 			}
+		}
+		if goOs == "linux" {
+			return downloadExecutable(
+				fmt.Sprintf("https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-%s.AppImage", linuxArch(c.Value(archKey).(string))),
+				"linuxdeploy.AppImage",
+			)
 		}
 		return nil
 	default:
