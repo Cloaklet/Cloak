@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Cloak
+Path=/usr/bin
+Exec=cloak
+Icon=Cloak
+Terminal=false
+Categories=Utility;System;FileTools;

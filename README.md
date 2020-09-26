@@ -54,6 +54,10 @@ You should build the frontend project first so the backend can find assets for t
 - Windows is not supported, because `gocryptfs` does not work on Windows.
 - Avoid committing `statik` module because it contains large blob of files produced by the frontend project.
 
+# Credits
+
+- [RemixIcon](https://remixicon.com/)
+
 # License
 
 GPL v3, see LICENSE file.
