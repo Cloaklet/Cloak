@@ -6,24 +6,31 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 )
 
 var ReleaseMode string
 
 func init() {
+	timeFormat := "2006-01-02T15:04:05.000000 MST"
+	// Ref: https://github.com/rs/zerolog/issues/114
+	zerolog.TimeFieldFormat = timeFormat
+
 	// Global zerolog settings
 	if ReleaseMode == "true" {
 		if logDir, err := locateLogDirectory(); err == nil {
 			logFile, err := os.OpenFile(filepath.Join(logDir, "Cloak.log"), os.O_WRONLY|os.O_CREATE, 0640)
 			if err == nil {
 				_ = logFile.Truncate(0)
-				zlog.Logger = zlog.Output(logFile)
+				zlog.Logger = zlog.Output(zerolog.ConsoleWriter{
+					NoColor:    true,
+					Out:        logFile,
+					TimeFormat: timeFormat,
+				})
 				return
 			}
 		}
 	}
-	zlog.Logger = zlog.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+	zlog.Logger = zlog.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat})
 
 }
 
