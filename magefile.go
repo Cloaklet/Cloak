@@ -89,6 +89,12 @@ func buildForTarget(c context.Context) (output string, err error) {
 			}
 		}
 		output = `Cloak.app`
+
+		// Zip the app bundle
+		sh.RunV(
+			"ditto",
+			"-c", "-k", "--sequesterRsrc", "--keepParent", "Cloak.app", "Cloak.app.zip",
+		)
 		return
 	case "linux":
 		executableDir := filepath.Join("AppDir", "usr", "bin")
@@ -230,7 +236,7 @@ func downloadExecutable(url string, name string) error {
 
 func linuxArch(goArch string) string {
 	archString, ok := map[string]string{
-		"386": "i386",
+		"386":   "i386",
 		"amd64": "x86_64",
 	}[goArch]
 	if !ok {
