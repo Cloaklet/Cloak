@@ -6,8 +6,18 @@ language: go
 go:
   - 1.14
 
+node_js:
+  - 12
+
 env:
   - GO111MODULE=on
+
+addons:
+  apt:
+    packages:
+      - libappindicator3-dev
+      - gcc
+      - libgtk-3-dev
 
 script:
   - cd frontend
