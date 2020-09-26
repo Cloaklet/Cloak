@@ -20,6 +20,30 @@ addons:
 before_script:
   - nvm install --lts
   - nvm use --lts
+
 script:
   - go test -v ./...
   - cd frontend && npm install && cd .. && go run build.go build
+
+deploy:
+  - provider: releases
+    api_key:
+      secure: 6AEybusUm6uGY2VC0eFOF9/VWvMMDCyF550kTnMAiMaLQGAszZzBIjwbjDqPYdRSRUuRRBbid4DAocBYONBW+ekhxeN+l61xnEKS/Y0an/jZ5xJz+XVcs5tcUxmKW2xyLXdGdJNN6DPm2vYx8+kizHAWHRCWrrIUIJfhsRCqSZnIy5i23/rMbZYXDm4fLoFu5lpIHaFH8501Ty9bWOZuXe7XXmf8+zm0XC3R7buLjrB0qQkNuXyKaLBIud2FjR9QSStnyXIsipe6Y8Csmel5WZwQ/h1FnALkm31QQmpCn+C/GsGJWB76x2lrawtkEaExuHPLG7RHcMOu0SZ81rFqd4nQI21OJ0O040j9tl7JzOoXDGt85qxJOGV6YU/ZOvm3O38qPOPX8DK9UqIa2eb7ZJSXA0ec4GCJC2eG+5wkbKBf6T+jK7ZD0Ev3psIZcRE3MBW12qeOenT3GuU6KSSZMl7tdcWaAtl2W6tkxl/AbHFaLDXCd/GBQ78E/5ll5NW8ag8rDht7o8KFIvY1wbng7Ec5XK5QAxIBaVEAtRwazuykEIt/fDbqh2qkC9CvKr5zqBRr+aoFQb4jEajd496iH6j0cuCYC+zgo1ih/rNjJz1D95TpuaqIsnNpD7WBsZzpF+FT6mfInnF2WOL5zwXDLFMn3q9LrwxW+EoOap1zp5w=
+    file: "Cloak.app.zip"
+    skip_cleanup: true
+    draft: true
+    on:
+      tags: true
+      repo: Cloaklet/Cloak
+      condition: $TRAVIS_OS_NAME == "osx"
+  - provider: releases
+    api_key:
+      secure: 6AEybusUm6uGY2VC0eFOF9/VWvMMDCyF550kTnMAiMaLQGAszZzBIjwbjDqPYdRSRUuRRBbid4DAocBYONBW+ekhxeN+l61xnEKS/Y0an/jZ5xJz+XVcs5tcUxmKW2xyLXdGdJNN6DPm2vYx8+kizHAWHRCWrrIUIJfhsRCqSZnIy5i23/rMbZYXDm4fLoFu5lpIHaFH8501Ty9bWOZuXe7XXmf8+zm0XC3R7buLjrB0qQkNuXyKaLBIud2FjR9QSStnyXIsipe6Y8Csmel5WZwQ/h1FnALkm31QQmpCn+C/GsGJWB76x2lrawtkEaExuHPLG7RHcMOu0SZ81rFqd4nQI21OJ0O040j9tl7JzOoXDGt85qxJOGV6YU/ZOvm3O38qPOPX8DK9UqIa2eb7ZJSXA0ec4GCJC2eG+5wkbKBf6T+jK7ZD0Ev3psIZcRE3MBW12qeOenT3GuU6KSSZMl7tdcWaAtl2W6tkxl/AbHFaLDXCd/GBQ78E/5ll5NW8ag8rDht7o8KFIvY1wbng7Ec5XK5QAxIBaVEAtRwazuykEIt/fDbqh2qkC9CvKr5zqBRr+aoFQb4jEajd496iH6j0cuCYC+zgo1ih/rNjJz1D95TpuaqIsnNpD7WBsZzpF+FT6mfInnF2WOL5zwXDLFMn3q9LrwxW+EoOap1zp5w=
+    file_glob: true
+    file: Cloak-*.AppImage
+    skip_cleanup: true
+    draft: true
+    on:
+      tags: true
+      repo: Cloaklet/Cloak
+      condition: $TRAVIS_OS_NAME == "linux"
