@@ -75,13 +75,19 @@ func buildForTarget(c context.Context) (output string, err error) {
 		if err = os.MkdirAll(executableDir, 0755); err != nil {
 			return
 		}
-		if err = os.Rename(executable, filepath.Join(executableDir, executable)); err != nil {
-			return
+
+		// Here's a list of files to be bundled
+		files := map[string]string{
+			executable:       filepath.Join(executableDir, executable),
+			"Info.plist":     filepath.Join(executableDir, `..`, `Info.plist`),
+			"gocryptfs":      filepath.Join(executableDir, "gocryptfs"),
+			"gocryptfs-xray": filepath.Join(executableDir, "gocryptfs-xray"),
 		}
-		if err = sh.Copy(filepath.Join(executableDir, `..`, `Info.plist`), `Info.plist`); err != nil {
-			return
+		for filename, _ := range files {
+			if err := sh.Copy(files[filename], filename); err != nil {
+				return output, err
+			}
 		}
-		err = os.Rename("gocryptfs", filepath.Join(executableDir, "gocryptfs"))
 		output = `Cloak.app`
 		return
 	case "linux":
@@ -97,7 +103,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 func Build() error {
 	ctx := context.WithValue(context.TODO(), osKey, runtime.GOOS)
 	ctx = context.WithValue(ctx, archKey, runtime.GOARCH)
-	mg.CtxDeps(ctx, InstallDeps, Clean, PackAssets, DownloadGocryptfs)
+	mg.SerialCtxDeps(ctx, Clean, InstallDeps, DownloadExternalTools, PackAssets)
 
 	fmt.Printf("Building for OS=%s ARCH=%s... ", runtime.GOOS, runtime.GOARCH)
 	if output, err := buildForTarget(ctx); err != nil {
@@ -159,37 +165,49 @@ func Clean(c context.Context) error {
 	return nil
 }
 
-// Download static build binary of gocryptfs
-func DownloadGocryptfs(c context.Context) error {
-	cloakVersion := "0.0.1"
-	gocryptfsVersion := "1.8.0"
-	goOs := c.Value(osKey).(string)
-	var downloadUrl string
-	switch goOs {
-	case "darwin", "linux":
-		downloadUrl = fmt.Sprintf(
-			"https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-%s-%s",
-			cloakVersion, gocryptfsVersion, goOs,
-		)
-	default:
-		return fmt.Errorf("Unsupported OS: %s", goOs)
-	}
-
-	// Download file
-	resp, err := http.Get(downloadUrl)
+// downloadExecutable downloads given URL into an executable file named by `name` in current directory.
+func downloadExecutable(url string, name string) error {
+	fmt.Printf("  > Downloading %s from %s\n", name, url)
+	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
+
 	defer resp.Body.Close()
-
-	binFile, err := os.Create("gocryptfs")
+	binFile, err := os.Create(name)
 	if err != nil {
 		return err
 	}
-	defer binFile.Close()
 
+	defer binFile.Close()
 	if _, err := io.Copy(binFile, resp.Body); err != nil {
 		return err
 	}
-	return os.Chmod("gocryptfs", 0755)
+
+	return os.Chmod(name, 0755)
+}
+
+// Download static build binary of gocryptfs
+func DownloadExternalTools(c context.Context) error {
+	cloakVersion := "0.0.1"
+	gocryptfsVersion := "1.8.0"
+	goOs := c.Value(osKey).(string)
+
+	// Here's a list of external tools to be downloaded, they are going to be bundled
+	tools := map[string]string{
+		"gocryptfs":      "https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-%s-%s",
+		"gocryptfs-xray": "https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-xray-%s-%s",
+	}
+	switch goOs {
+	case "darwin", "linux":
+		for name, _ := range tools {
+			toolUrl := fmt.Sprintf(tools[name], cloakVersion, gocryptfsVersion, goOs)
+			if err := downloadExecutable(toolUrl, name); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("Unsupported OS: %s", goOs)
+	}
 }
