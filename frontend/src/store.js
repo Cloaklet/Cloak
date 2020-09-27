@@ -93,13 +93,30 @@ export default new Vuex.Store({
         }
     },
     actions: {
-        loadVaults ({commit}) {
-            return axios.get(`${API}/api/vaults`).then(resp => {
+        // This method takes care of extra error handling when talking to backend APIs
+        requestApi({commit}, payload) { // payload={method,api,data}
+            let {method, api, data} = payload
+            return axios.request({
+                method: method,
+                url: `${API}/api/${api}`,
+                data: data
+            }).then(resp => {
                 if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
+                    commit('setError', resp.data)
                 }
+                return resp.data
+            }).catch(err => {
+                commit('setError', {code: -1, msg: err.message}) // FIXME i18n
+                return {}
+            })
+        },
+        loadVaults ({commit, dispatch}) {
+            return dispatch('requestApi', {
+                method: 'get',
+                api: 'vaults'
+            }).then(({items}) => {
                 let vaults = []
-                for (const v of resp.data.items) {
+                for (const v of items || []) {
                     vaults.push({
                         id: v.id,
                         name: v.path.split('/').pop(),
@@ -112,125 +129,80 @@ export default new Vuex.Store({
                     })
                 }
                 commit('loadVaults', {vaults: vaults})
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
             })
         },
-        removeVault({commit}, payload) {
-            return axios.delete(`${API}/api/vault/${payload.vaultId}`).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
+        removeVault({commit, dispatch}, {vaultId}) {
+            return dispatch('requestApi', {
+                method: 'delete',
+                api: `vault/${vaultId}`}
+            ).then(() => commit('removeVault', {vaultId: vaultId}))
+        },
+        addVault({commit, dispatch}, {path}) {
+            return dispatch('requestApi', {
+                method: 'post',
+                api: 'vaults',
+                data: {op: 'add', path: path}
+            }).then(({item}) => item && commit('addVault', item))
+        },
+        createVault({commit, dispatch}, payload) { // payload={name,path,password}
+            return dispatch('requestApi', {
+                method: 'post',
+                api: 'vaults',
+                data: {
+                    op: 'create',
+                    ...payload
                 }
-                commit('removeVault', payload)
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
+            }).then(({item}) => item && commit('addVault', item))
+        },
+        revealMountPointForVault({dispatch}, {vaultId}) {
+            return dispatch('requestApi', {
+                method: 'post',
+                api: `vault/${vaultId}`,
+                data: {op: 'reveal'}
             })
         },
-        addVault({commit}, payload) {
-            return axios.post(`${API}/api/vaults`, {
-                op: 'add',
-                path: payload.path
-            }).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
-                }
-                commit('addVault', resp.data.item)
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
-            })
-        },
-        createVault({commit}, payload) {
-            return axios.post(`${API}/api/vaults`, {
-                op: 'create',
-                path: payload.path,
-                name: payload.name,
-                password: payload.password
-            }).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
-                }
-                commit('addVault', resp.data.item)
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
-            })
-        },
-        revealMountPointForVault({commit}, payload) {
-            return axios.post(`${API}/api/vault/${payload.vaultId}`, {
-                op: 'reveal'
-            }).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
-                }
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
-            })
-        },
-        lockVault({commit}, payload) {
-            return axios.post(`${API}/api/vault/${payload.vaultId}`, {
-                op: 'lock'
-            }).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
-                }
+        lockVault({commit, dispatch}, {vaultId}) {
+            return dispatch('requestApi', {
+                method: 'post',
+                api: `vault/${vaultId}`,
+                data: {op: 'lock'}
+            }).then(({state}) => {
                 commit('setVaultState', {
-                    vaultId: payload.vaultId,
-                    state: resp.data.state
+                    vaultId: vaultId,
+                    state: state || 'locked'
                 })
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
             })
         },
-        unlockVault({commit}, payload) {
-            return axios.post(`${API}/api/vault/${payload.vaultId}`, {
-                op: 'unlock',
-                password: payload.password
-            }).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
-                }
-                commit('setVaultState', {
-                    vaultId: payload.vaultId,
-                    state: resp.data.state
-                })
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
+        unlockVault({commit, dispatch}, {vaultId, password}) {
+            return dispatch('requestApi', {
+                method: 'post',
+                api: `vault/${vaultId}`,
+                data: {op: 'unlock', password: password}
+            }).then(({state}) => commit('setVaultState', {
+                vaultId: vaultId,
+                state: state || 'locked'
+            }))
+        },
+        updateVaultOptions({commit, dispatch}, payload) { // payload={vaultId,autoreveal,readonly,mountpoint}
+            return dispatch('requestApi', {
+                method: 'post',
+                api: `vault/${payload.vaultId}/options`,
+                data: {...payload}
+            }).then(({item}) => item && commit('updateVault', item))
+        },
+        changeVaultPassword({dispatch}, payload) { // payload={vaultId,password,newpassword}
+            return dispatch('requestApi', {
+                method: 'post',
+                api: `vault/${payload.vaultId}/password`,
+                data: {...payload}
             })
         },
-        updateVaultOptions({commit}, payload) {
-            return axios.post(`${API}/api/vault/${payload.vaultId}/options`, {
-                autoreveal: payload.autoreveal,
-                readonly: payload.readonly,
-                mountpoint: payload.mountpoint
-            }).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
-                }
-                commit('updateVault', resp.data.item)
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
-            })
-        },
-        changeVaultPassword({commit}, payload) {
-            return axios.post(`${API}/api/vault/${payload.vaultId}/password`, {
-                password: payload.password,
-                newpassword: payload.newpassword
-            }).then(resp => {
-                commit('setError', resp.data)
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
-            })
-        },
-        revealVaultMasterkey({commit}, payload) {
-            return axios.post(`${API}/api/vault/${payload.vaultId}/masterkey`, {
-                password: payload.password,
-            }).then(resp => {
-                if (resp.data.code !== 0) {
-                    return commit('setError', resp.data)
-                }
-                return resp.data.item // <- this is the masterkey
-            }).catch(err => {
-                return commit('setError', {code: -1, msg: err.message}) // FIXME
-            })
+        revealVaultMasterkey({dispatch}, payload) { // payload={vaultId,password}
+            return dispatch('requestApi', {
+                method: 'post',
+                api: `vault/${payload.vaultId}/masterkey`,
+                data: {password: payload.password}
+            }).then(({item}) => item)
         }
     }
 })
