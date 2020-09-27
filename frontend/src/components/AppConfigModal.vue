@@ -83,7 +83,7 @@ export default {
     }
   },
   mounted() {
-    this.$store.dispatch('loadAppConfig').then(version => this.version = {...version})
+    this.$store.dispatch('loadAppConfig').then(({version}) => this.version = {...version})
   }
 }
 </script>

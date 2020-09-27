@@ -54,10 +54,7 @@
 </template>
 
 <script>
-import axios from 'axios'
 import {mapMutations} from 'vuex'
-
-const API = 'http://127.0.0.1:9763' // FIXME
 
 export default {
   name: "FileSelectionModal",
@@ -102,18 +99,10 @@ export default {
   methods: {
     ...mapMutations(['setError']),
     listSubPaths(pwd) {
-      axios.post(`${API}/api/subpaths`, {
-        pwd: pwd,
-      }).then(resp => {
-        if (resp.data.code !== 0) {
-          // Pass error to root app via custom event
-          return this.setError(resp.data)
-        }
-        this.pwd = resp.data.pwd;
-        this.items = resp.data.items;
-        this.sep = resp.data.sep;
-      }).catch(err => {
-        return this.setError({code: -1, msg: err.message}) // FIXME
+      this.$store.dispatch('listSubPaths', {path: pwd}).then(data => {
+        this.pwd = data.pwd
+        this.sep = data.sep
+        this.items = data.items
       })
     },
     clickOnItem(item) {

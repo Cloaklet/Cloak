@@ -107,7 +107,7 @@ export default new Vuex.Store({
                 return resp.data
             }).catch(err => {
                 commit('setError', {code: -1, msg: err.message}) // FIXME i18n
-                return {}
+                throw err
             })
         },
         loadVaults ({commit, dispatch}) {
@@ -142,7 +142,7 @@ export default new Vuex.Store({
                 method: 'post',
                 api: 'vaults',
                 data: {op: 'add', path: path}
-            }).then(({item}) => item && commit('addVault', item))
+            }).then(({item}) => commit('addVault', item))
         },
         createVault({commit, dispatch}, payload) { // payload={name,path,password}
             return dispatch('requestApi', {
@@ -152,7 +152,7 @@ export default new Vuex.Store({
                     op: 'create',
                     ...payload
                 }
-            }).then(({item}) => item && commit('addVault', item))
+            }).then(({item}) => commit('addVault', item))
         },
         revealMountPointForVault({dispatch}, {vaultId}) {
             return dispatch('requestApi', {
@@ -166,29 +166,21 @@ export default new Vuex.Store({
                 method: 'post',
                 api: `vault/${vaultId}`,
                 data: {op: 'lock'}
-            }).then(({state}) => {
-                commit('setVaultState', {
-                    vaultId: vaultId,
-                    state: state || 'locked'
-                })
-            })
+            }).then(({state}) => commit('setVaultState', { vaultId: vaultId, state: state }))
         },
         unlockVault({commit, dispatch}, {vaultId, password}) {
             return dispatch('requestApi', {
                 method: 'post',
                 api: `vault/${vaultId}`,
                 data: {op: 'unlock', password: password}
-            }).then(({state}) => commit('setVaultState', {
-                vaultId: vaultId,
-                state: state || 'locked'
-            }))
+            }).then(({state}) => commit('setVaultState', { vaultId: vaultId, state: state }))
         },
         updateVaultOptions({commit, dispatch}, payload) { // payload={vaultId,autoreveal,readonly,mountpoint}
             return dispatch('requestApi', {
                 method: 'post',
                 api: `vault/${payload.vaultId}/options`,
                 data: {...payload}
-            }).then(({item}) => item && commit('updateVault', item))
+            }).then(({item}) => commit('updateVault', item))
         },
         changeVaultPassword({dispatch}, payload) { // payload={vaultId,password,newpassword}
             return dispatch('requestApi', {
@@ -208,15 +200,16 @@ export default new Vuex.Store({
             return dispatch('requestApi', {
                 method: 'get',
                 api: 'options'
-            }).then(({item}) => {
-                const version = item ? (item.version || {}) : {}
-                return {
-                    version: version.version || '',
-                    gitCommit: version.gitCommit || '',
-                    buildTime: version.buildTime || ''
-                }
+            }).then(({item}) => item)
+        },
+        listSubPaths({dispatch}, {path}) {
+            return dispatch('requestApi', {
+                method: 'post',
+                api: 'subpaths',
+                data: {pwd: path}
             })
-        }
+        },
+
     }
 })
 
