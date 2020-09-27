@@ -23,6 +23,9 @@ export default new Vuex.Store({
         },
         vaultsCount: state =>  {
             return state.vaults.length
+        },
+        minimalPasswordLength: () => {
+            return 8
         }
     },
     mutations: {

@@ -58,15 +58,15 @@
                 <label for="create-vault-password"
                        class="form-label"
                        v-t="'list.create.password.label'"></label>
-                <input type="password"
-                       class="form-input"
-                       id="create-vault-password"
-                       v-model="createVaultPassword">
-                <Password class="password-strength-meter"
-                          v-model="createVaultPassword"
-                          :strength-meter-only="true"
-                          :secureLength="8"
-                          @feedback="showPasswordFeedback"/>
+                <PasswordStrengthMeter id="create-vault-password" class="password-strength-meter"
+                                       v-model="createVaultPassword"
+                                       :secure-length="$store.getters.minimalPasswordLength"
+                                       :badge="false"
+                                       :toggle="true"
+                                       default-class="form-input"
+                                       :label-show="'Show'"
+                                       :label-hide="'Hide'"
+                                       @feedback="showPasswordFeedback"/>
                 <p class="form-input-hint"
                    v-if="passwordStrengthHint">{{ passwordStrengthHint }}</p>
               </div>
@@ -135,13 +135,13 @@
 
 <script>
 import FileSelectionModal from './FileSelectionModal'
-import Password from 'vue-password-strength-meter'
+import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
 
 export default {
   name: "AddVaultModal",
   components: {
-    FileSelectionModal,
-    Password
+    PasswordStrengthMeter,
+    FileSelectionModal
   },
   data: function() {
     return {
@@ -163,8 +163,7 @@ export default {
     canCreate() {
       return this.createVaultName &&
           this.createVaultDir &&
-          this.createVaultPassword.length > 8 &&
-          !this.passwordStrengthHint &&
+          this.createVaultPassword.length >= this.$store.getters.minimalPasswordLength &&
           this.passwordMatch
     },
   },
@@ -190,17 +189,18 @@ export default {
     requestAddVault() {
       this.$emit('add-vault-request', {path: this.addVaultFile})
     },
-    showPasswordFeedback({suggestions, warning}) {
-      console.log(suggestions, warning) // FIXME
+    showPasswordFeedback({warning}) {
+      if (this.createVaultPassword.length < this.$store.getters.minimalPasswordLength) {
+        this.passwordStrengthHint = this.$t('misc.password.length_not_enough', {
+          length: this.$store.getters.minimalPasswordLength
+        })
+        return
+      }
       if (warning) {
-        this.passwordStrengthHint = warning
-        return
+        this.passwordStrengthHint = this.$t(`zxcvbn.${warning}`) || warning
+      } else {
+        this.passwordStrengthHint = ''
       }
-      for (const sug of suggestions) {
-        this.passwordStrengthHint = sug
-        return
-      }
-      this.passwordStrengthHint = ''
     }
   },
 }

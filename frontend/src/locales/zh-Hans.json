@@ -62,7 +62,10 @@
     "done": "完成",
     "open": "打开",
     "select": "选择",
-    "unlock": "解密"
+    "unlock": "解密",
+    "password": {
+      "length_not_enough": "请输入至少 {length} 个字符"
+    }
   },
   "panel": {
     "buttons": {
@@ -131,5 +134,21 @@
         "label": "只读模式"
       }
     }
+  },
+  "zxcvbn": {
+    "Straight rows of keys are easy to guess": "键盘上连续的序列易于猜测",
+    "Short keyboard patterns are easy to guess": "简短的键位组合易于猜测",
+    "Repeats like \"aaa\" are easy to guess": "类似 aaa 的重复字母很容易被猜到",
+    "Repeats like \"abcabcabc\" are only slightly harder to guess than \"abc\"": "类似 abcabcabc 的重复字母很容易被猜到",
+    "Sequences like abc or 6543 are easy to guess": "类似 abc 或 6543 的序列很容易被猜到",
+    "Recent years are easy to guess": "近期的年份易于猜测",
+    "Dates are often easy to guess": "日期通常易于猜测",
+    "This is a top-10 common password": "此密码极度常见",
+    "This is a top-100 common password": "此密码特别常见",
+    "This is a very common password": "此密码较为常见",
+    "This is similar to a commonly used password": "此密码与常见密码类似",
+    "A word by itself is easy to guess": "单个词语易于猜测",
+    "Names and surnames by themselves are easy to guess": "仅有名字和姓氏的密码易于猜测",
+    "Common names and surnames are easy to guess": "常见的名字和姓氏易于猜测"
   }
 }
