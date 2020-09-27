@@ -25,13 +25,14 @@ This time I got an idea from one of my early projects to use web browser as UI r
 Notice: you have to use a running instance of macOS, either a VM or a real Apple computer.
 
 - Install Xcode related stuff with `xcode-select --install`.
-- Run `go run build.go build` and it should create the `Cloak.app` bundle.
+- Install frontend dependencies: `cd frontend && npm install`.
+- Run `go run build.go build` in project root, and it should create the `Cloak.app` bundle.
 - Double click to start the app.
 
 ## For Linux
 
-- Install required libraries: `sudo apt install libappindicator3-dev gcc libgtk-3-dev`.
-- If you're on Linux Mint, install an additional library: `sudo apt install libxapp-dev`.
+- Install required libraries: `sudo apt install libappindicator3-dev gcc libgtk-3-dev libxapp-dev`.
+- Install frontend dependencies: `cd frontend && npm install`.
 - Run `go run build.go build` and it should produce an AppImage binary.
 
 The AppImage binary includes all required libraries and tools, so you can run it right away.
@@ -41,8 +42,10 @@ The AppImage binary includes all required libraries and tools, so you can run it
 ## Frontend
 
 The frontend (UI) project resides in `frontend` directory. It's a standard Vue project managed by vue-cli.
-Simply run `npm run serve` inside `frontend` directory.
-You can also run the `serve` task from vue-cli UI, run `vue ui` to get started.
+
+- Install dependencies: `npm install` inside `frontend` directory.
+- Simply run `npm run serve` inside `frontend` directory.
+- You can also run the `serve` task from vue-cli UI, run `vue ui` to get started.
 
 ## Backend
 
@@ -56,6 +59,7 @@ You should build the frontend project first so the backend can find assets for t
 - `gocryptfs` requires `FUSE` to function. For macOS please install `OSXFUSE`.
 - Windows is not supported, because `gocryptfs` does not work on Windows.
 - Avoid committing `statik` module because it contains large blob of files produced by the frontend project.
+- If you are building the app yourself, missing `libxapp-dev` would not result in error; But when running the built AppImage on Linux Mint, menu item will lose highlighting.
 
 # Credits
 
