@@ -35,13 +35,6 @@ deploy:
     file: "Cloak.app.zip"
     skip_cleanup: true
     draft: true
-    body: |
-      All artifacts were built automatically by Travis CI.
-
-      - For Linux: `chmod +x Cloak*.AppImage` before running;
-      - For macOS: `sudo xattr -d -r com.apple.quarantine Cloak.app` after decompressing the ZIP file;
-
-
     on:
       tags: true
       repo: Cloaklet/Cloak
@@ -53,13 +46,6 @@ deploy:
     file: Cloak-*.AppImage
     skip_cleanup: true
     draft: true
-    body: |
-      All artifacts were built automatically by Travis CI.
-
-      - For Linux: `chmod +x Cloak*.AppImage` before running;
-      - For macOS: `sudo xattr -d -r com.apple.quarantine Cloak.app` after decompressing the ZIP file;
-
-
     on:
       tags: true
       repo: Cloaklet/Cloak
