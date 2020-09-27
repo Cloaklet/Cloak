@@ -12,7 +12,12 @@ import (
 
 // openPath opens given path in OS file manager.
 func openPath(path string) {
-	// FIXME
+	xdgOpen, err := exec.LookPath("xdg-open")
+	if err != nil {
+		return
+	}
+	proc := exec.Command(xdgOpen, path)
+	proc.Run()
 }
 
 // isFuseAvailable detects FUSE availability for Linux.
