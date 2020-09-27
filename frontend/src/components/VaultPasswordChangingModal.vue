@@ -22,14 +22,21 @@
                    id="vault-chpw-oldpassword"
                    v-model="password">
           </div>
-          <div class="form-group">
+          <div class="form-group" :class="{ 'has-error': passwordStrengthHint }">
             <label class="form-label"
                    for="vault-chpw-newpassword"
                    v-t="'vault.options.change_password.label.newpassword'"></label>
-            <input class="form-input"
-                   type="password"
-                   id="vault-chpw-newpassword"
-                   v-model="newPassword">
+            <PasswordStrengthMeter id="vault-chpw-newpassword"
+                                   v-model="newPassword"
+                                   :secure-length="$store.getters.minimalPasswordLength"
+                                   :badge="false"
+                                   :toggle="true"
+                                   default-class="form-input"
+                                   :label-show="$t('misc.show')"
+                                   :label-hide="$t('misc.hide')"
+                                   @feedback="showPasswordFeedback"/>
+            <p class="form-input-hint"
+               v-if="passwordStrengthHint">{{ passwordStrengthHint }}</p>
           </div>
           <div class="form-group" :class="{ 'has-error': !passwordMatch }">
             <label class="form-label"
@@ -59,14 +66,17 @@
 
 <script>
 import {mapGetters} from 'vuex'
+import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
 
 export default {
   name: "VaultPasswordChangingModal",
+  components: {PasswordStrengthMeter},
   data: function() {
     return {
       password: "",
       newPassword: "",
-      newPasswordRepeat: ""
+      newPasswordRepeat: "",
+      passwordStrengthHint: ''
     }
   },
   computed: {
@@ -75,7 +85,10 @@ export default {
       return this.newPassword === this.newPasswordRepeat
     },
     canChangePassword() {
-      return this.password && this.newPassword && this.passwordMatch
+      return this.password &&
+          this.newPassword &&
+          this.newPassword.length >= this.$store.getters.minimalPasswordLength &&
+          this.passwordMatch
     }
   },
   methods: {
@@ -93,11 +106,29 @@ export default {
       }).finally(() => {
         this.$wait.end('changing vault password')
       })
+    },
+    showPasswordFeedback({warning}) {
+      if (this.newPassword.length < this.$store.getters.minimalPasswordLength) {
+        this.passwordStrengthHint = this.$t('misc.password.length_not_enough', {
+          length: this.$store.getters.minimalPasswordLength
+        })
+        return
+      }
+      if (warning) {
+        this.passwordStrengthHint = this.$t(`zxcvbn.${warning}`) || warning
+      } else {
+        this.passwordStrengthHint = ''
+      }
     }
   }
 }
 </script>
 
 <style scoped>
-
+.form-input-hint {
+  margin-bottom: 0;
+}
+/deep/ .Password__strength-meter {
+  margin: .4rem auto;
+}
 </style>

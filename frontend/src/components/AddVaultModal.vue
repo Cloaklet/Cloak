@@ -58,14 +58,14 @@
                 <label for="create-vault-password"
                        class="form-label"
                        v-t="'list.create.password.label'"></label>
-                <PasswordStrengthMeter id="create-vault-password" class="password-strength-meter"
+                <PasswordStrengthMeter id="create-vault-password"
                                        v-model="createVaultPassword"
                                        :secure-length="$store.getters.minimalPasswordLength"
                                        :badge="false"
                                        :toggle="true"
                                        default-class="form-input"
-                                       :label-show="'Show'"
-                                       :label-hide="'Hide'"
+                                       :label-show="$t('misc.show')"
+                                       :label-hide="$t('misc.hide')"
                                        @feedback="showPasswordFeedback"/>
                 <p class="form-input-hint"
                    v-if="passwordStrengthHint">{{ passwordStrengthHint }}</p>
@@ -207,13 +207,10 @@ export default {
 </script>
 
 <style scoped>
-.password-strength-meter {
-  max-width: unset;
-}
 .form-input-hint {
-  margin: 0;
+  margin-bottom: 0;
 }
 /deep/ .Password__strength-meter {
-  margin: .3rem auto;
+  margin: .4rem auto;
 }
 </style>

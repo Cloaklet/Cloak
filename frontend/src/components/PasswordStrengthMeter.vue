@@ -304,7 +304,6 @@ export default {
 }
 
 .Password {
-  max-width:  400px;
   margin:  0 auto;
 }
 
