@@ -16,6 +16,7 @@ addons:
       - libappindicator3-dev
       - gcc
       - libgtk-3-dev
+      - libxapp-dev
 
 before_script:
   - nvm install --lts
