@@ -1,14 +1,20 @@
 # Cloak
 
-A simple GUI app for gocryptfs, using web tech stack.
-This is currently a work in progress, it works on macOS and Linux, but you have to build it from source.
+A simple GUI app for gocryptfs, using web tech stack. Works on macOS and Linux.
 
-UI / interaction mimicked from Cryptomator.
+UI / interaction mimicked from Cryptomator. English and Simplified Chinese are included.
+
+# Usage
+
+- Download prebuilt binaries from [releases page](https://github.com/Cloaklet/Cloak/releases/latest/).
+- For Linux users, set executable permission for the `AppImage` file (alternatively you can use `chmod +x Cloak*.AppImage`), then just run it.
+- For macOS users, after decompressing the ZIP archive, you might need to run `xattr -d -r com.apple.quarantine Cloak.app` in Terminal, otherwise GateKeeper would refuse to run the app.
+- You can open the UI or quit the app via `Open` menu item of the tray icon (or menubar icon).
 
 # Why
 
 I wrote a similar GUI called [Cloaklet](https://github.com/Cloaklet/Cloaklet) using QML + Golang.
-However I don't enjoy developing in QML at all, and it had some issues I failed to resolve, so I quickly gave it up.
+However, I don't enjoy developing in QML at all, and quickly ran into some issues which I can't resolve.
 After that I went back to use Cryptomator, but its UI feels slow and somehow inconsistent.
 This time I got an idea from one of my early projects to use web browser as UI renderer, thus this new project.
 
@@ -22,16 +28,13 @@ Notice: you have to use a running instance of macOS, either a VM or a real Apple
 - Run `go run build.go build` and it should create the `Cloak.app` bundle.
 - Double click to start the app.
 
-The macOS app bundle includes `gocryptfs` binary, so you don't to compile and install it manually.
-
 ## For Linux
 
 - Install required libraries: `sudo apt install libappindicator3-dev gcc libgtk-3-dev`.
 - If you're on Linux Mint, install an additional library: `sudo apt install libxapp-dev`.
-- Run `go run build.go build` and it should produce `cloak` binary.
+- Run `go run build.go build` and it should produce an AppImage binary.
 
-Please note that we don't currently create app bundle for Linux, so `gocryptfs` is not included.
-Drop an official binary from [gocryptfs release](https://github.com/rfjakob/gocryptfs/releases) into anywhere of your `PATH` should work.
+The AppImage binary includes all required libraries and tools, so you can run it right away.
 
 # To develop
 
