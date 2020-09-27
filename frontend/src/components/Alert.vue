@@ -3,7 +3,7 @@
        :class="[ isError ? 'toast-error': 'toast-success' ]"
        v-show="hasAlert">
     <button class="btn btn-clear float-right" v-if="isError" @click="closeAlert"></button>
-    <p>{{ $store.state.error.msg }}
+    <p>{{ translatedErrMsg }}
       <i18n tag="span" class="pl-1" v-if="isError" path="alert.errcode">
         <template #code>{{ errCode }}</template>
       </i18n>
@@ -28,6 +28,13 @@ export default {
     },
     errCode() {
       return this.$store.state.error.code
+    },
+    translatedErrMsg() {
+      const key = `errors.api_${this.errCode}`
+      if (this.errCode >= 0 && this.$te(key)) {
+          return this.$t(key)
+      }
+      return this.$store.state.error.msg
     }
   },
   methods: {

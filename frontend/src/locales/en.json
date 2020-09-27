@@ -118,7 +118,7 @@
         "description": "If you ever forget your password, the following master key is the only way to restore access to \"{vaultname}\"",
         "keep_description": "Keep it somewhere very secure, e.g.:",
         "keep_note": {
-          "note_1":  "Store it using a password manager",
+          "note_1": "Store it using a password manager",
           "note_2": "Print it on paper and store it in a drawer"
         },
         "title": "Master Key",
@@ -152,5 +152,28 @@
     "A word by itself is easy to guess": "",
     "Names and surnames by themselves are easy to guess": "",
     "Common names and surnames are easy to guess": ""
+  },
+  "errors": {
+    "api_0": "Ok",
+    "api_1": "Failed to list vaults",
+    "api_2": "Malformed input data",
+    "api_3": "Unknown error",
+    "api_4": "Given path does not exist",
+    "api_5": "Unsupported operation",
+    "api_6": "Given vault ID does not exist",
+    "api_7": "This vault is already unlocked",
+    "api_8": "This vault is already locked",
+    "api_9": "Mountpoint is not empty",
+    "api_10": "Password incorrect",
+    "api_11": "gocryptfs.conf could not be opened",
+    "api_12": "Cannot locate gocryptfs binary",
+    "api_13": "FUSE is not available on this computer",
+    "api_14": "Failed to create vault directory",
+    "api_15": "New vault directory is not empty",
+    "api_16": "Password for the new vault is empty",
+    "api_17": "Could not create gocryptfs.conf for the new vault",
+    "api_18": "Gocryptfs could not write the updated gocryptfs.conf",
+    "api_19": "Cannot locate gocryptfs-xray binary",
+    "api_20": "Failed to create mountpoint directory"
   }
 }
