@@ -3,10 +3,15 @@
 package main
 
 import (
+	"Cloak/server"
+	"bytes"
 	"context"
+	json2 "encoding/json"
 	"fmt"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 	"github.com/magefile/mage/sh"
+	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -274,4 +279,74 @@ func DownloadExternalTools(c context.Context) error {
 	default:
 		return fmt.Errorf("Unsupported OS: %s", goOs)
 	}
+}
+
+// PackErrorsIntoLocales [for DEVs] inject all missing error codes into UI locales.
+func PackErrorsIntoLocales() error {
+	errors := []*server.ApiError{
+		server.ErrOk,
+		server.ErrListFailed,
+		server.ErrMalformedInput,
+		server.ErrUnknown,
+		server.ErrPathNotExist,
+		server.ErrUnsupportedOperation,
+		server.ErrVaultNotExist,
+		server.ErrVaultAlreadyUnlocked,
+		server.ErrVaultAlreadyLocked,
+		server.ErrMountpointNotEmpty,
+		server.ErrWrongPassword,
+		server.ErrCantOpenVaultConf,
+		server.ErrMissingGocryptfsBinary,
+		server.ErrMissingFuse,
+		server.ErrVaultMkdirFailed,
+		server.ErrVaultDirNotEmpty,
+		server.ErrVaultPasswordEmpty,
+		server.ErrVaultInitConfFailed,
+		server.ErrVaultUpdateConfFailed,
+		server.ErrMissingGocryptfsXrayBinary,
+		server.ErrMountpointMkdirFailed,
+	}
+	localesDir := filepath.Join("frontend", "src", "locales")
+	localeFiles, err := ioutil.ReadDir(localesDir)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range localeFiles {
+		fmt.Printf("Processing locale file '%s': ", file.Name())
+		jsonBytes, err := ioutil.ReadFile(filepath.Join(localesDir, file.Name()))
+		if err != nil {
+			return err
+		}
+		json := string(jsonBytes)
+
+		if errorSubKey := gjson.Get(json, "errors"); !errorSubKey.Exists() {
+			// Initialize .errors object
+			if json, err = sjson.Set(json, "errors", map[string]string{}); err != nil {
+				return err
+			}
+		}
+		for _, error := range errors {
+			errorKey := fmt.Sprintf("errors.api_%d", error.Code)
+			if errorValue := gjson.Get(json, errorKey); !errorValue.Exists() {
+				errorString := ""
+				if file.Name() == "en.json" {
+					errorString = error.Message
+				}
+				if json, err = sjson.Set(json, errorKey, errorString); err != nil {
+					return err
+				}
+				fmt.Printf("%d ", error.Code)
+			}
+		}
+		var jsonOut bytes.Buffer
+		if err = json2.Indent(&jsonOut, []byte(json), "", "  "); err != nil {
+			return err
+		}
+		if err = ioutil.WriteFile(filepath.Join(localesDir, file.Name()), jsonOut.Bytes(), file.Mode()); err != nil {
+			return err
+		}
+		fmt.Printf("Done.\n")
+	}
+	return nil
 }
