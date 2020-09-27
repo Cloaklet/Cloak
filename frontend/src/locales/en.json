@@ -63,6 +63,8 @@
     "open": "Open",
     "select": "Select",
     "unlock": "Unlock",
+    "show": "Show",
+    "hide": "Hide",
     "password": {
       "length_not_enough": "Use at least {length} characters"
     }

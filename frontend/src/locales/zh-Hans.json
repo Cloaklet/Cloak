@@ -63,6 +63,8 @@
     "open": "打开",
     "select": "选择",
     "unlock": "解密",
+    "show": "显示",
+    "hide": "隐藏",
     "password": {
       "length_not_enough": "请输入至少 {length} 个字符"
     }
