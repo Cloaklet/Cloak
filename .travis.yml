@@ -3,6 +3,8 @@ language: go
 go:
   - 1.14
 
+dist: bionic
+
 os:
   - linux
   - osx
