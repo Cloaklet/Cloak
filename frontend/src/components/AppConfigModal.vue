@@ -57,9 +57,6 @@
 </template>
 
 <script>
-import axios from 'axios'
-
-const API = 'http://127.0.0.1:9763'
 export default {
   name: "AppConfigModal",
   computed: {
@@ -86,19 +83,7 @@ export default {
     }
   },
   mounted() {
-    axios.get(`${API}/api/options`).then(resp => {
-      if (resp.data.code !== 0) {
-        return this.$store.commit('setError', resp.data)
-      }
-      let versionInfo = resp.data.item.version
-      this.version = {
-        version: versionInfo.version,
-        buildTime: versionInfo.buildTime,
-        gitCommit: versionInfo.gitCommit
-      }
-    }).catch(err => {
-      return this.$store.commit('setError', {code: -1, msg: err.message}) // FIXME
-    })
+    this.$store.dispatch('loadAppConfig').then(version => this.version = {...version})
   }
 }
 </script>

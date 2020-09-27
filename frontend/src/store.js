@@ -203,6 +203,19 @@ export default new Vuex.Store({
                 api: `vault/${payload.vaultId}/masterkey`,
                 data: {password: payload.password}
             }).then(({item}) => item)
+        },
+        loadAppConfig({dispatch}) {
+            return dispatch('requestApi', {
+                method: 'get',
+                api: 'options'
+            }).then(({item}) => {
+                const version = item ? (item.version || {}) : {}
+                return {
+                    version: version.version || '',
+                    gitCommit: version.gitCommit || '',
+                    buildTime: version.buildTime || ''
+                }
+            })
         }
     }
 })
