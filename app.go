@@ -11,6 +11,8 @@ import (
 	"github.com/lopezator/migrator"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/browser"
+	"gopkg.in/ini.v1"
+	"os"
 	"path/filepath"
 )
 
@@ -24,6 +26,7 @@ func (l *logPrinter) Printf(f string, v ...interface{}) {
 }
 
 type App struct {
+	dataDir     string
 	apiServer   *server.ApiServer
 	repo        *models.VaultRepo
 	db          *sql.DB
@@ -51,8 +54,28 @@ func (a *App) Migrate() {
 	}
 }
 
+// Options represents INI-based application settings
+type Options struct {
+	Locale string `ini:"locale"`
+}
+
 func (a *App) LoadConfig() {
-	// FIXME
+	appOptions := new(Options)
+	if err := ini.MapTo(
+		appOptions, filepath.Join(a.dataDir, "options.ini"),
+	); err != nil && !os.IsNotExist(err) {
+		logger.Error().Err(err).Msg("Failed to map app options from config file")
+		return
+	}
+	if appOptions.Locale == "" {
+		return
+	}
+
+	if err := i18n.SetLocale(appOptions.Locale); err != nil {
+		logger.Error().Err(err).
+			Str("locale", appOptions.Locale).
+			Msg("Failed to set locale loaded from config file")
+	}
 }
 
 // NewApp constructs and returns a new App instance
@@ -65,6 +88,7 @@ func NewApp() *App {
 			Msg("Failed to get application data directory")
 	} else {
 		logger.Info().Str("appDataDir", appDataDir).Msg("Determined application data directory")
+		app.dataDir = appDataDir
 	}
 
 	// Load database
@@ -82,6 +106,7 @@ func NewApp() *App {
 	systray.SetTooltip("Cloak")
 	openBrowser := systray.AddMenuItem(i18n.T("open"), "")
 	quit := systray.AddMenuItem(i18n.T("quit"), "")
+
 	// Realtime i18n changing
 	go func() {
 		for {
