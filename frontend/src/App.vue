@@ -1,20 +1,22 @@
 <template>
-  <div id="app" class="container hero">
-    <div class="columns col-gapless">
-      <div class="column col-7 col-mx-auto card"><!--Limit width-->
-        <AppHeader/>
-        <div class="columns col-gapless card-body p-0">
-          <VaultList/>
-          <VaultInfoPanel/>
+  <transition appear name="fade">
+    <div id="app" class="container hero">
+      <div class="columns col-gapless">
+        <div class="column col-7 col-mx-auto card"><!--Limit width-->
+          <AppHeader/>
+          <div class="columns col-gapless card-body p-0">
+            <VaultList/>
+            <VaultInfoPanel/>
+          </div>
         </div>
       </div>
+      <Alert/>
     </div>
-    <Alert/>
-  </div>
+  </transition>
 </template>
 
 <script>
-import 'spectre.css';
+import 'spectre.css/dist/spectre.min.css'
 import 'remixicon/fonts/remixicon.css'
 import Alert from '@/components/Alert.vue'
 import VaultList from '@/components/VaultList.vue'
@@ -52,5 +54,11 @@ export default {
 }
 .tab {
   user-select: none;
+}
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .6s;
+}
+.fade-enter, .fade-leave-to {
+  opacity: 0;
 }
 </style>
