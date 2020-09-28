@@ -24,6 +24,7 @@ Cloak
 gocryptfs
 gocryptfs-xray
 *.AppImage
+i18n/data.go
 
 # Frontend project ignore rules
 node_modules
