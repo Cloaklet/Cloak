@@ -116,7 +116,16 @@ func NewApp() *App {
 					logger.Debug().Str("locale", locale).Msg("Locale changed")
 					openBrowser.SetTitle(i18n.T("open"))
 					quit.SetTitle(i18n.T("quit"))
-					// FIXME Persistent locale to config file
+					// Persistent locale to config file
+					appOptions := &Options{Locale: locale}
+					cfg := ini.Empty()
+					if err := cfg.ReflectFrom(appOptions); err != nil {
+						logger.Error().Err(err).Msg("Failed to update app options")
+						continue
+					}
+					if err := cfg.SaveTo(filepath.Join(app.dataDir, "options.ini")); err != nil {
+						logger.Error().Err(err).Msg("Failed to save app options to config file")
+					}
 				}
 			}
 		}
