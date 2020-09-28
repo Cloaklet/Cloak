@@ -21,6 +21,7 @@
 statik/statik.go
 cloak
 Cloak
+*zip
 gocryptfs
 gocryptfs-xray
 *.AppImage
