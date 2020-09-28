@@ -56,6 +56,10 @@ func buildForTarget(c context.Context) (output string, err error) {
 	}
 	currentTimeString := time.Now().Format(`2006-01-02 15:04:05 MST`)
 
+	if err := sh.RunV("go", "generate", "./..."); err != nil {
+		return "", err
+	}
+
 	executable := "cloak"
 	buildCmd := []string{
 		`go`, `build`,
