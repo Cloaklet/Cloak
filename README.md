@@ -1,5 +1,7 @@
 # Cloak
 
+[![Build Status](https://img.shields.io/travis/com/Cloaklet/Cloak?style=for-the-badge)](https://travis-ci.com/Cloaklet/Cloak)
+
 A simple GUI app for gocryptfs, using web tech stack. Works on macOS and Linux.
 
 UI / interaction mimicked from Cryptomator. English and Simplified Chinese are included.
