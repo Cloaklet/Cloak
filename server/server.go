@@ -2,6 +2,7 @@ package server
 
 import (
 	"Cloak/extension"
+	"Cloak/i18n"
 	"Cloak/models"
 	_ "Cloak/statik"
 	"Cloak/version"
@@ -184,6 +185,7 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		// List local disk content
 		apis.POST("/subpaths", server.ListSubPaths)
 		apis.GET("/options", server.GetOptions)
+		apis.POST("/options", server.SetOptions)
 	}
 	// We use `rand` to generate random mountpoint name, so be sure to seed it upon start up
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -808,7 +810,28 @@ func (s *ApiServer) GetOptions(c echo.Context) error {
 			"buildTime": version.BuildTime,
 			"gitCommit": version.GitCommit,
 		},
+		"options": echo.Map{
+			"locale": i18n.GetCurrentLocale(),
+		},
 	})
+}
+
+// SetOptions persists application options.
+// Currently the only available option is `locale`.
+func (s *ApiServer) SetOptions(c echo.Context) error {
+	var appOption struct {
+		Locale string `json:"locale"`
+	}
+	if err := c.Bind(&appOption); err != nil {
+		return ErrMalformedInput
+	}
+
+	if appOption.Locale != i18n.GetCurrentLocale() {
+		if err := i18n.SetLocale(appOption.Locale); err != nil {
+			return ErrMalformedInput
+		}
+	}
+	return ErrOk
 }
 
 // RevealVaultMasterkey returns masterkey for given vault.

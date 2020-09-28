@@ -2,6 +2,7 @@ package main
 
 import (
 	"Cloak/extension"
+	"Cloak/i18n"
 	"Cloak/icons"
 	"Cloak/models"
 	"Cloak/server"
@@ -50,6 +51,10 @@ func (a *App) Migrate() {
 	}
 }
 
+func (a *App) LoadConfig() {
+	// FIXME
+}
+
 // NewApp constructs and returns a new App instance
 func NewApp() *App {
 	app := &App{releaseMode: ReleaseMode == "true"}
@@ -62,18 +67,37 @@ func NewApp() *App {
 		logger.Info().Str("appDataDir", appDataDir).Msg("Determined application data directory")
 	}
 
+	// Load database
 	app.db, err = sql.Open("sqlite3", filepath.Join(appDataDir, "vaults.db"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to open vault database")
 	}
 
+	// Migrate database
 	app.Migrate()
 	app.repo = models.NewVaultRepo(app.db)
 
+	// Setup menu icon
 	systray.SetTemplateIcon(icons.TRAY_TPL, icons.TRAY)
-	systray.SetTooltip("Cloak - a gocryptfs GUI")
-	openBrowser := systray.AddMenuItem("Open", "")
-	quit := systray.AddMenuItem("Quit", "")
+	systray.SetTooltip("Cloak")
+	openBrowser := systray.AddMenuItem(i18n.T("open"), "")
+	quit := systray.AddMenuItem(i18n.T("quit"), "")
+	// Realtime i18n changing
+	go func() {
+		for {
+			select {
+			case locale, ok := <-i18n.C:
+				if ok {
+					logger.Debug().Str("locale", locale).Msg("Locale changed")
+					openBrowser.SetTitle(i18n.T("open"))
+					quit.SetTitle(i18n.T("quit"))
+					// FIXME Persistent locale to config file
+				}
+			}
+		}
+	}()
+
+	// Menu item events
 	go func() {
 		for {
 			select {
@@ -85,6 +109,10 @@ func NewApp() *App {
 		}
 	}()
 
+	// Load app config
+	app.LoadConfig()
+
+	// Run API server in the background
 	app.apiServer = server.NewApiServer(app.repo, app.releaseMode)
 	go func() {
 		app.apiServer.Start("127.0.0.1:9763")
