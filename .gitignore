@@ -19,6 +19,11 @@
 .DS_Store
 *.db
 statik/statik.go
+cloak
+Cloak
+gocryptfs
+gocryptfs-xray
+*.AppImage
 
 # Frontend project ignore rules
 node_modules
