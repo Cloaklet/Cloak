@@ -74,6 +74,7 @@ export default {
     }
   },
   mounted() {
+    this.$store.dispatch('loadAppConfig').then(({locale}) => this.$root.$i18n.locale = locale)
     this.$store.dispatch('loadVaults')
   }
 }

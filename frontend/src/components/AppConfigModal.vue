@@ -60,18 +60,16 @@
 export default {
   name: "AppConfigModal",
   computed: {
+    version() {
+      return this.$store.state.version
+    },
     lang() {
       return this.$root.$i18n.locale
     }
   },
   data: function() {
     return {
-      active: 'options',
-      version: {
-        version: null,
-        buildTime: null,
-        gitCommit: null
-      }
+      active: 'options'
     }
   },
   methods: {
@@ -79,11 +77,12 @@ export default {
       this.$emit('close')
     },
     changeLanguage(event) {
-      this.$root.$i18n.locale = event.target.value
+      this.$store.dispatch('setOptions', {
+        locale: event.target.value
+      }).then(({locale}) => {
+        this.$root.$i18n.locale = locale
+      })
     }
-  },
-  mounted() {
-    this.$store.dispatch('loadAppConfig').then(({version}) => this.version = {...version})
   }
 }
 </script>

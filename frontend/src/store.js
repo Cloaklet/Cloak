@@ -10,7 +10,8 @@ export default new Vuex.Store({
         error: {
             code: null,
             msg: '',
-        }
+        },
+        version: {}
     },
     getters: {
         selectedVault: state =>  {
@@ -90,6 +91,9 @@ export default new Vuex.Store({
                     break
                 }
             }
+        },
+        setVersion(state, payload) {
+            state.version = {...payload}
         }
     },
     actions: {
@@ -196,11 +200,14 @@ export default new Vuex.Store({
                 data: {password: payload.password}
             }).then(({item}) => item)
         },
-        loadAppConfig({dispatch}) {
+        loadAppConfig({commit, dispatch}) {
             return dispatch('requestApi', {
                 method: 'get',
                 api: 'options'
-            }).then(({item}) => item)
+            }).then(({item}) => {
+                commit('setVersion', {...item.version})
+                return item.options || {locale: 'en'}
+            })
         },
         listSubPaths({dispatch}, {path}) {
             return dispatch('requestApi', {
@@ -209,7 +216,13 @@ export default new Vuex.Store({
                 data: {pwd: path}
             })
         },
-
+        setOptions({dispatch}, {locale}) {
+            return dispatch('requestApi', {
+                method: 'post',
+                api: 'options',
+                data: {locale: locale}
+            }).then(() => ({locale}))
+        }
     }
 })
 
