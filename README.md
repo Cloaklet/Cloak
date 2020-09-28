@@ -66,6 +66,7 @@ You should build the frontend project first so the backend can find assets for t
 # Credits
 
 - [RemixIcon](https://remixicon.com/)
+- [CSS-Spinner](https://github.com/loadingio/css-spinner/)
 
 # License
 
