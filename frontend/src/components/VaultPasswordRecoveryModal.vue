@@ -21,7 +21,7 @@
                    type="text"
                    id="vault-recoverpw-masterkey"
                    ref="masterkeyInput"
-                   v-model="password">
+                   v-model="masterkey">
           </div>
           <div class="form-group" :class="{ 'has-error': passwordStrengthHint }">
             <label class="form-label"
