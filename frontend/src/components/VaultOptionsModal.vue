@@ -79,14 +79,19 @@
             </div>
           </div>
           <div class="p-2 m-2" v-else-if="active === 'password'">
-            <div class="text-center">
+            <div class="form-group">
               <button class="btn btn-block" @click="showPasswordChangingModal = true">
                 <i class="ri-key-2-fill"></i> {{ $t('vault.options.buttons.change_password') }}
               </button>
             </div>
-            <div class="text-center mt-2">
+            <div class="form-group">
               <button class="btn btn-block" @click="showMasterkeyModal = true">
                 <i class="ri-eye-fill"></i> {{ $t('vault.options.buttons.reveal_masterkey') }}
+              </button>
+            </div>
+            <div class="form-group">
+              <button class="btn btn-block" @click="showPasswordRecoveryModal = true">
+                <i class="ri-device-recover-fill"></i> {{ $t('vault.options.buttons.recover_password') }}
               </button>
             </div>
           </div>
@@ -103,6 +108,8 @@
                         @selected="setVaultMountpoint"
                         mode="directory"/>
     <VaultMasterkeyModal v-if="showMasterkeyModal" @close="showMasterkeyModal = false"/>
+    <VaultPasswordRecoveryModal v-if="showPasswordRecoveryModal"
+                                @close="showPasswordRecoveryModal = false"/>
   </div>
 </template>
 
@@ -111,15 +118,17 @@ import {mapGetters} from 'vuex'
 import VaultPasswordChangingModal from "@/components/VaultPasswordChangingModal";
 import FileSelectionModal from "@/components/FileSelectionModal";
 import VaultMasterkeyModal from "@/components/VaultMasterkeyModal";
+import VaultPasswordRecoveryModal from "@/components/VaultPasswordRecoveryModal";
 
 export default {
   name: "VaultOptionsModal",
-  components: {VaultMasterkeyModal, FileSelectionModal, VaultPasswordChangingModal},
+  components: {VaultPasswordRecoveryModal, VaultMasterkeyModal, FileSelectionModal, VaultPasswordChangingModal},
   data: function() {
     return {
       active: 'general',
       showPasswordChangingModal: false,
       showMasterkeyModal: false,
+      showPasswordRecoveryModal: false,
       showMountpointSelectionModal: false,
       useCustomMountpoint: null
     }

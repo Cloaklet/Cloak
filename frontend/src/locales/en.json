@@ -14,6 +14,29 @@
     },
     "title": "Options"
   },
+  "errors": {
+    "api_0": "Ok",
+    "api_1": "Failed to list vaults",
+    "api_10": "Password incorrect",
+    "api_11": "gocryptfs.conf could not be opened",
+    "api_12": "Cannot locate gocryptfs binary",
+    "api_13": "FUSE is not available on this computer",
+    "api_14": "Failed to create vault directory",
+    "api_15": "New vault directory is not empty",
+    "api_16": "Password for the new vault is empty",
+    "api_17": "Could not create gocryptfs.conf for the new vault",
+    "api_18": "Gocryptfs could not write the updated gocryptfs.conf",
+    "api_19": "Cannot locate gocryptfs-xray binary",
+    "api_2": "Malformed input data",
+    "api_20": "Failed to create mountpoint directory",
+    "api_3": "Unknown error",
+    "api_4": "Given path does not exist",
+    "api_5": "Unsupported operation",
+    "api_6": "Given vault ID does not exist",
+    "api_7": "This vault is already unlocked",
+    "api_8": "This vault is already locked",
+    "api_9": "Mountpoint is not empty"
+  },
   "list": {
     "add": {
       "add": "Add Existing Vault",
@@ -60,14 +83,14 @@
     "copy_failed": "Failed to copy",
     "create": "Create",
     "done": "Done",
-    "open": "Open",
-    "select": "Select",
-    "unlock": "Unlock",
-    "show": "Show",
     "hide": "Hide",
+    "open": "Open",
     "password": {
       "length_not_enough": "Use at least {length} characters"
-    }
+    },
+    "select": "Select",
+    "show": "Show",
+    "unlock": "Unlock"
   },
   "panel": {
     "buttons": {
@@ -102,6 +125,7 @@
       },
       "buttons": {
         "change_password": "Change Password",
+        "recover_password": "@:(vault.options.recover_password.title)",
         "reveal_masterkey": "Show Master Key"
       },
       "change_password": {
@@ -134,46 +158,29 @@
       "password": "Password",
       "readonly": {
         "label": "Read-Only"
+      },
+      "recover_password": {
+        "label": {
+          "masterkey": "Enter your master key for \"{vaultname}\""
+        },
+        "title": "Recover Password"
       }
     }
   },
   "zxcvbn": {
-    "Straight rows of keys are easy to guess": "",
-    "Short keyboard patterns are easy to guess": "",
+    "A word by itself is easy to guess": "",
+    "Common names and surnames are easy to guess": "",
+    "Dates are often easy to guess": "",
+    "Names and surnames by themselves are easy to guess": "",
+    "Recent years are easy to guess": "",
     "Repeats like \"aaa\" are easy to guess": "",
     "Repeats like \"abcabcabc\" are only slightly harder to guess than \"abc\"": "",
     "Sequences like abc or 6543 are easy to guess": "",
-    "Recent years are easy to guess": "",
-    "Dates are often easy to guess": "",
+    "Short keyboard patterns are easy to guess": "",
+    "Straight rows of keys are easy to guess": "",
     "This is a top-10 common password": "",
     "This is a top-100 common password": "",
     "This is a very common password": "",
-    "This is similar to a commonly used password": "",
-    "A word by itself is easy to guess": "",
-    "Names and surnames by themselves are easy to guess": "",
-    "Common names and surnames are easy to guess": ""
-  },
-  "errors": {
-    "api_0": "Ok",
-    "api_1": "Failed to list vaults",
-    "api_2": "Malformed input data",
-    "api_3": "Unknown error",
-    "api_4": "Given path does not exist",
-    "api_5": "Unsupported operation",
-    "api_6": "Given vault ID does not exist",
-    "api_7": "This vault is already unlocked",
-    "api_8": "This vault is already locked",
-    "api_9": "Mountpoint is not empty",
-    "api_10": "Password incorrect",
-    "api_11": "gocryptfs.conf could not be opened",
-    "api_12": "Cannot locate gocryptfs binary",
-    "api_13": "FUSE is not available on this computer",
-    "api_14": "Failed to create vault directory",
-    "api_15": "New vault directory is not empty",
-    "api_16": "Password for the new vault is empty",
-    "api_17": "Could not create gocryptfs.conf for the new vault",
-    "api_18": "Gocryptfs could not write the updated gocryptfs.conf",
-    "api_19": "Cannot locate gocryptfs-xray binary",
-    "api_20": "Failed to create mountpoint directory"
+    "This is similar to a commonly used password": ""
   }
 }

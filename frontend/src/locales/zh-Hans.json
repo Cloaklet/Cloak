@@ -14,6 +14,29 @@
     },
     "title": "选项"
   },
+  "errors": {
+    "api_0": "完成",
+    "api_1": "无法列出加密库",
+    "api_10": "密码错误",
+    "api_11": "无法打开加密库中的 gocryptfs.conf 文件",
+    "api_12": "无法定位 gocryptfs 工具",
+    "api_13": "此计算机上不支持 FUSE",
+    "api_14": "创建加密库目录失败",
+    "api_15": "新建的加密库目录非空",
+    "api_16": "新加密库的密码为空",
+    "api_17": "无法为新加密库创建 gocryptfs.conf 文件",
+    "api_18": "Gocryptfs 无法写入更新后的 gocryptfs.conf 文件",
+    "api_19": "无法定位 gocryptfs-xray 工具",
+    "api_2": "无效的输入数据",
+    "api_20": "创建挂载点目录时失败",
+    "api_3": "未知错误",
+    "api_4": "指定的路径不存在",
+    "api_5": "不支持的操作",
+    "api_6": "指定的加密库ID不存在",
+    "api_7": "此库已被解密",
+    "api_8": "此库已被锁定",
+    "api_9": "挂载点目录非空"
+  },
   "list": {
     "add": {
       "add": "添加已有的加密库",
@@ -60,14 +83,14 @@
     "copy_failed": "复制失败",
     "create": "创建",
     "done": "完成",
-    "open": "打开",
-    "select": "选择",
-    "unlock": "解密",
-    "show": "显示",
     "hide": "隐藏",
+    "open": "打开",
     "password": {
       "length_not_enough": "请输入至少 {length} 个字符"
-    }
+    },
+    "select": "选择",
+    "show": "显示",
+    "unlock": "解密"
   },
   "panel": {
     "buttons": {
@@ -102,6 +125,7 @@
       },
       "buttons": {
         "change_password": "修改密码",
+        "recover_password": "@:(vault.options.recover_password.title)",
         "reveal_masterkey": "显示 Master Key"
       },
       "change_password": {
@@ -134,46 +158,29 @@
       "password": "密码",
       "readonly": {
         "label": "只读模式"
+      },
+      "recover_password": {
+        "label": {
+          "masterkey": "输入「{vaultname}」的 master key"
+        },
+        "title": "重置密码"
       }
     }
   },
   "zxcvbn": {
-    "Straight rows of keys are easy to guess": "键盘上连续的序列易于猜测",
-    "Short keyboard patterns are easy to guess": "简短的键位组合易于猜测",
+    "A word by itself is easy to guess": "单个词语易于猜测",
+    "Common names and surnames are easy to guess": "常见的名字和姓氏易于猜测",
+    "Dates are often easy to guess": "日期通常易于猜测",
+    "Names and surnames by themselves are easy to guess": "仅有名字和姓氏的密码易于猜测",
+    "Recent years are easy to guess": "近期的年份易于猜测",
     "Repeats like \"aaa\" are easy to guess": "类似 aaa 的重复字母很容易被猜到",
     "Repeats like \"abcabcabc\" are only slightly harder to guess than \"abc\"": "类似 abcabcabc 的重复字母很容易被猜到",
     "Sequences like abc or 6543 are easy to guess": "类似 abc 或 6543 的序列很容易被猜到",
-    "Recent years are easy to guess": "近期的年份易于猜测",
-    "Dates are often easy to guess": "日期通常易于猜测",
+    "Short keyboard patterns are easy to guess": "简短的键位组合易于猜测",
+    "Straight rows of keys are easy to guess": "键盘上连续的序列易于猜测",
     "This is a top-10 common password": "此密码极度常见",
     "This is a top-100 common password": "此密码特别常见",
     "This is a very common password": "此密码较为常见",
-    "This is similar to a commonly used password": "此密码与常见密码类似",
-    "A word by itself is easy to guess": "单个词语易于猜测",
-    "Names and surnames by themselves are easy to guess": "仅有名字和姓氏的密码易于猜测",
-    "Common names and surnames are easy to guess": "常见的名字和姓氏易于猜测"
-  },
-  "errors": {
-    "api_0": "完成",
-    "api_1": "无法列出加密库",
-    "api_2": "无效的输入数据",
-    "api_3": "未知错误",
-    "api_4": "指定的路径不存在",
-    "api_5": "不支持的操作",
-    "api_6": "指定的加密库ID不存在",
-    "api_7": "此库已被解密",
-    "api_8": "此库已被锁定",
-    "api_9": "挂载点目录非空",
-    "api_10": "密码错误",
-    "api_11": "无法打开加密库中的 gocryptfs.conf 文件",
-    "api_12": "无法定位 gocryptfs 工具",
-    "api_13": "此计算机上不支持 FUSE",
-    "api_14": "创建加密库目录失败",
-    "api_15": "新建的加密库目录非空",
-    "api_16": "新加密库的密码为空",
-    "api_17": "无法为新加密库创建 gocryptfs.conf 文件",
-    "api_18": "Gocryptfs 无法写入更新后的 gocryptfs.conf 文件",
-    "api_19": "无法定位 gocryptfs-xray 工具",
-    "api_20": "创建挂载点目录时失败"
+    "This is similar to a commonly used password": "此密码与常见密码类似"
   }
 }
