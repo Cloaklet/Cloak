@@ -179,3 +179,53 @@ func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (s
 	masterkey = strings.TrimSpace(stdOutput.String())
 	return masterkey, nil
 }
+
+// GocryptfsResetVaultPassword reset password for vault using masterkey.
+func (s *ApiServer) GocryptfsResetVaultPassword(path string, masterkey string, newPassword string) error {
+	chPwProc := exec.Command(s.cmd, "-passwd", "-masterkey", masterkey, "--", path)
+	// Password is piped through STDIN
+	stdIn, err := chPwProc.StdinPipe()
+	var errorOutput bytes.Buffer
+	chPwProc.Stderr = &errorOutput
+	if err != nil {
+		logger.Error().Err(err).
+			Str("vaultPath", path).
+			Msg("Failed to create STDIN pipe when recovering password for vault")
+		return err
+	}
+
+	go func() {
+		defer stdIn.Close()
+		passwords := strings.Join([]string{newPassword, newPassword}, "\n")
+		if _, err := io.WriteString(stdIn, passwords); err != nil {
+			logger.Error().Err(err).
+				Str("vaultPath", path).
+				Msg("Failed to pipe passwords to gocryptfs when recovering password for vault")
+		}
+	}()
+
+	if err := chPwProc.Run(); err != nil {
+		rc := chPwProc.ProcessState.ExitCode()
+		errString := errorOutput.String()
+		errlog := logger.With().Err(err).
+			Int("RC", rc).
+			Str("vaultPath", path).
+			Str("stdErr", errString).
+			Logger()
+		switch rc {
+		case 12:
+			errlog.Error().Msg("Password incorrect")
+			return ErrWrongPassword
+		case 23:
+			errlog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
+			return ErrCantOpenVaultConf
+		case 24:
+			errlog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
+			return ErrVaultUpdateConfFailed
+		default:
+			errlog.Error().Msg("Unknown error when recovering password for vault")
+			return ErrUnknown.Reformat(errString)
+		}
+	}
+	return nil
+}

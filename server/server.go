@@ -536,7 +536,8 @@ func (s *ApiServer) ChangeVaultPassword(c echo.Context) error {
 	}
 
 	var form struct {
-		Password    string `json:"password"`
+		Password    string `json:"password"`  // optional, either `password` or `masterkey` will do
+		MasterKey   string `json:"masterkey"` // optional, either `password` or `masterkey` will do
 		NewPassword string `json:"newpassword"`
 	}
 	if err := c.Bind(&form); err != nil {
@@ -565,8 +566,16 @@ func (s *ApiServer) ChangeVaultPassword(c echo.Context) error {
 	}
 
 	// Start a gocryptfs process to change password
-	if err = s.GocryptfsChangeVaultPassword(vault.Path, form.Password, form.NewPassword); err != nil {
-		return err
+	if form.Password != "" {
+		if err = s.GocryptfsChangeVaultPassword(vault.Path, form.Password, form.NewPassword); err != nil {
+			return err
+		}
+	} else if form.MasterKey != "" {
+		if err = s.GocryptfsResetVaultPassword(vault.Path, form.MasterKey, form.NewPassword); err != nil {
+			return err
+		}
+	} else {
+		return ErrMalformedInput
 	}
 	return ErrOk
 }
