@@ -99,8 +99,12 @@
       </div>
       <div class="modal-footer"></div>
     </div>
-    <VaultPasswordChangingModal v-if="showPasswordChangingModal"
+    <VaultPasswordChangingModal using="password"
+                                v-if="showPasswordChangingModal"
                                 @close="showPasswordChangingModal = false"/>
+    <VaultPasswordChangingModal using="masterkey"
+                                v-if="showPasswordRecoveryModal"
+                                @close="showPasswordRecoveryModal = false"/>
     <FileSelectionModal v-if="active === 'mount' && showMountpointSelectionModal"
                         :title="$t('vault.options.mounting.selection.title')"
                         :ok-btn="$t('misc.select')"
@@ -108,8 +112,6 @@
                         @selected="setVaultMountpoint"
                         mode="directory"/>
     <VaultMasterkeyModal v-if="showMasterkeyModal" @close="showMasterkeyModal = false"/>
-    <VaultPasswordRecoveryModal v-if="showPasswordRecoveryModal"
-                                @close="showPasswordRecoveryModal = false"/>
   </div>
 </template>
 
@@ -118,11 +120,10 @@ import {mapGetters} from 'vuex'
 import VaultPasswordChangingModal from "@/components/VaultPasswordChangingModal";
 import FileSelectionModal from "@/components/FileSelectionModal";
 import VaultMasterkeyModal from "@/components/VaultMasterkeyModal";
-import VaultPasswordRecoveryModal from "@/components/VaultPasswordRecoveryModal";
 
 export default {
   name: "VaultOptionsModal",
-  components: {VaultPasswordRecoveryModal, VaultMasterkeyModal, FileSelectionModal, VaultPasswordChangingModal},
+  components: {VaultMasterkeyModal, FileSelectionModal, VaultPasswordChangingModal},
   data: function() {
     return {
       active: 'general',
