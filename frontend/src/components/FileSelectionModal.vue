@@ -145,7 +145,11 @@ export default {
   border: .05rem solid #dadee4;
   height: 450px;
 }
-.modal-body .content, .modal-body .content .menu, .menu .empty {
+.modal-body .content {
+  min-height: 100%;
+  display: grid; /* any better idea on how to stretch file list height? */
+}
+.modal-body .content .menu, .menu .empty {
   height: 100%;
 }
 .current-path {
