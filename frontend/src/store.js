@@ -186,12 +186,12 @@ export default new Vuex.Store({
                 data: {...payload}
             }).then(({item}) => commit('updateVault', item))
         },
-        changeVaultPassword({dispatch}, payload) { // payload={vaultId,password/masterkey,newpassword}
+        changeVaultPassword({commit, dispatch}, payload) { // payload={vaultId,password/masterkey,newpassword}
             return dispatch('requestApi', {
                 method: 'post',
                 api: `vault/${payload.vaultId}/password`,
                 data: {...payload}
-            })
+            }).then(data => commit('setError', data))
         },
         revealVaultMasterkey({dispatch}, payload) { // payload={vaultId,password}
             return dispatch('requestApi', {
