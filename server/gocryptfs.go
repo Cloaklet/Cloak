@@ -2,10 +2,13 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 /*
@@ -226,6 +229,23 @@ func (s *ApiServer) GocryptfsResetVaultPassword(path string, masterkey string, n
 			errlog.Error().Msg("Unknown error when recovering password for vault")
 			return ErrUnknown.Reformat(errString)
 		}
+	}
+
+	// Rename backup of original vault config file
+	// so the next time user do a password resetting there is no file conflicting
+	vaultConfBackup := filepath.Join(path, "gocryptfs.conf.bak")
+	vaultConfBackupWithTime := filepath.Join(
+		path,
+		fmt.Sprintf(
+			"gocryptfs.conf.bak.%s", time.Now().UTC().Format("2006-01-02T15:04:05.000 MST"),
+		),
+	)
+	if err := os.Rename(vaultConfBackup, vaultConfBackupWithTime); err != nil && !os.IsNotExist(err) {
+		logger.Warn().Err(err).
+			Str("vaultPath", path).
+			Str("from", vaultConfBackup).
+			Str("to", vaultConfBackupWithTime).
+			Msg("Failed to rename backup of original gocryptfs.conf file")
 	}
 	return nil
 }
