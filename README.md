@@ -1,6 +1,9 @@
 # Cloak
 
 [![Build Status](https://img.shields.io/travis/com/Cloaklet/Cloak?style=for-the-badge)](https://travis-ci.com/Cloaklet/Cloak)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Cloaklet/Cloak?style=for-the-badge)](https://goreportcard.com/report/github.com/Cloaklet/Cloak)
+![GitHub](https://img.shields.io/github/license/Cloaklet/Cloak?style=for-the-badge)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/Cloaklet/Cloak?style=for-the-badge)](https://github.com/Cloaklet/Cloak/releases/latest)
 
 A simple GUI app for gocryptfs, using web tech stack. Works on macOS and Linux.
 
