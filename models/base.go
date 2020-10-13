@@ -6,12 +6,17 @@ import (
 	"strings"
 )
 
+// BaseRepo implements transactional function execution and other useful utilities
 type BaseRepo struct {
 	db *sql.DB
 }
 
+// TxFunc stands for a function which decides whether a transaction should be aborted or committed.
+//
+// If any error is returned from this function, the transaction aborts; Otherwise it commits.
 type TxFunc func(tx Transactional) error
 
+// Transactional represents a type which can execute SQL just like `sql.Tx`.
 type Transactional interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
@@ -19,6 +24,7 @@ type Transactional interface {
 	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
+// WithTransaction executes `TxFunc` within a transaction.
 func (r *BaseRepo) WithTransaction(handled TxFunc) error {
 	var (
 		err error
@@ -51,6 +57,7 @@ func (r *BaseRepo) WithTransaction(handled TxFunc) error {
 	return err
 }
 
+// Field represents a struct field of a model instance
 type Field struct {
 	Name    string      // Field name
 	Pointer interface{} // This is the pointer you will use for SQL scanning
@@ -83,6 +90,9 @@ func (r *BaseRepo) Fields(m interface{}) []*Field {
 	return fields
 }
 
+// FieldPointers is just like `Fields` but returns pointers instead.
+//
+// The returned pointers can be used to Scan values into fields.
 func (r *BaseRepo) FieldPointers(m interface{}) []interface{} {
 	fields := r.Fields(m)
 	pointers := make([]interface{}, len(fields))

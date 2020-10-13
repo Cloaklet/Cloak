@@ -25,6 +25,7 @@ func (l *logPrinter) Printf(f string, v ...interface{}) {
 	logger.Debug().Msgf(f, v...)
 }
 
+// App is the main type to control lifecycle of the whole application
 type App struct {
 	dataDir     string
 	apiServer   *server.ApiServer
@@ -38,7 +39,7 @@ func (a *App) stop() {
 	a.apiServer.Stop()
 }
 
-func (a *App) Migrate() {
+func (a *App) migrate() {
 	m, err := migrator.New(
 		migrator.WithLogger(&logPrinter{}),
 		migrator.Migrations(migrations...),
@@ -59,7 +60,7 @@ type Options struct {
 	Locale string `ini:"locale"`
 }
 
-func (a *App) LoadConfig() {
+func (a *App) loadConfig() {
 	appOptions := new(Options)
 	if err := ini.MapTo(
 		appOptions, filepath.Join(a.dataDir, "options.ini"),
@@ -98,7 +99,7 @@ func NewApp() *App {
 	}
 
 	// Migrate database
-	app.Migrate()
+	app.migrate()
 	app.repo = models.NewVaultRepo(app.db)
 
 	// Setup menu icon
@@ -144,7 +145,7 @@ func NewApp() *App {
 	}()
 
 	// Load app config
-	app.LoadConfig()
+	app.loadConfig()
 
 	// Run API server in the background
 	app.apiServer = server.NewApiServer(app.repo, app.releaseMode)

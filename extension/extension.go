@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 )
 
+// ReleaseMode is set in build time (to either "true" or "false"), it
+// indicates whether the app runs in release (production) mode.
 var ReleaseMode string
 
 func init() {
@@ -43,15 +45,18 @@ func OpenPath(path string) {
 // It first looks for the binary in the same directory as current running executable,
 // then falls back to anything found in PATH environment.
 func LocateBinary(executable string) (string, error) {
-	if self, err := os.Executable(); err != nil {
+	var (
+		self string
+		err  error
+	)
+	if self, err = os.Executable(); err != nil {
 		return "", err
-	} else {
-		path := filepath.Join(filepath.Dir(self), executable)
-		if _, err = os.Stat(path); err != nil {
-			return exec.LookPath(executable)
-		}
-		return path, nil
 	}
+	path := filepath.Join(filepath.Dir(self), executable)
+	if _, err = os.Stat(path); err != nil {
+		return exec.LookPath(executable)
+	}
+	return path, nil
 }
 
 // GetLogger creates a new zerolog logger with given string as vaule for `module` key.
@@ -65,6 +70,7 @@ func IsFuseAvailable() bool {
 	return isFuseAvailable()
 }
 
+// GetAppDataDirectory locates path of an existing directory in which we can store our data.
 func GetAppDataDirectory() (string, error) {
 	return locateAppDataDirectory()
 }

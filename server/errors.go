@@ -30,6 +30,7 @@ type DataContainer struct {
 	State string      `json:"state,omitempty"`
 }
 
+// WrapList wraps a list of items into an ApiError
 func (a *ApiError) WrapList(items interface{}) *DataContainer {
 	return &DataContainer{
 		ApiError: a,
@@ -37,6 +38,7 @@ func (a *ApiError) WrapList(items interface{}) *DataContainer {
 	}
 }
 
+// WrapItem wraps a single item into an ApiError
 func (a *ApiError) WrapItem(item interface{}) *DataContainer {
 	return &DataContainer{
 		ApiError: a,
@@ -44,6 +46,7 @@ func (a *ApiError) WrapItem(item interface{}) *DataContainer {
 	}
 }
 
+// WrapState wraps a state string into an ApiError
 func (a *ApiError) WrapState(state string) *DataContainer {
 	return &DataContainer{
 		ApiError: a,

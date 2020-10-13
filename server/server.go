@@ -4,7 +4,7 @@ import (
 	"Cloak/extension"
 	"Cloak/i18n"
 	"Cloak/models"
-	_ "Cloak/statik"
+	_ "Cloak/statik" // (for release mode) frontend assets
 	"Cloak/version"
 	"context"
 	"database/sql"
@@ -34,6 +34,10 @@ func init() {
 	logger = extension.GetLogger("server")
 }
 
+// ApiServer represents a type which:
+// - Communicates with frontend (the UI);
+// - Controls and reacts to gocryptfs processes;
+// - Maintains the vault database;
 type ApiServer struct {
 	repo          *models.VaultRepo   // database repository
 	echo          *echo.Echo          // the actual HTTP server
@@ -200,19 +204,24 @@ type VaultInfo struct {
 
 // ListVaults returns a list of all known vaults
 func (s *ApiServer) ListVaults(_ echo.Context) error {
-	if vaults, err := s.repo.List(nil); err != nil {
+	var (
+		vaults []models.Vault
+		err    error
+	)
+	if vaults, err = s.repo.List(nil); err != nil {
 		return ErrListFailed
-	} else {
-		vaultList := make([]VaultInfo, len(vaults))
-		for i, v := range vaults {
-			vaultList[i] = VaultInfo{Vault: v, State: "locked"}
-			// Detect vault state
-			if _, ok := s.mountPoints[v.ID]; ok {
-				vaultList[i].State = "unlocked"
-			}
-		}
-		return ErrOk.WrapList(vaultList)
 	}
+
+	vaultList := make([]VaultInfo, len(vaults))
+	for i, v := range vaults {
+		vaultList[i] = VaultInfo{Vault: v, State: "locked"}
+		// Detect vault state
+		if _, ok := s.mountPoints[v.ID]; ok {
+			vaultList[i].State = "unlocked"
+		}
+	}
+	return ErrOk.WrapList(vaultList)
+
 }
 
 // OperateOnVault performs operations on a single vault, including lock/unlock.
