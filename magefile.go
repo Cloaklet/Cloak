@@ -92,7 +92,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 			"gocryptfs":      filepath.Join(executableDir, "gocryptfs"),
 			"gocryptfs-xray": filepath.Join(executableDir, "gocryptfs-xray"),
 		}
-		for filename, _ := range files {
+		for filename := range files {
 			if err := sh.Copy(files[filename], filename); err != nil {
 				return output, err
 			}
@@ -115,7 +115,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 			"gocryptfs":      filepath.Join(executableDir, "gocryptfs"),
 			"gocryptfs-xray": filepath.Join(executableDir, "gocryptfs-xray"),
 		}
-		for filename, _ := range files {
+		for filename := range files {
 			if err := sh.Copy(files[filename], filename); err != nil {
 				return output, err
 			}
@@ -267,7 +267,7 @@ func DownloadExternalTools(c context.Context) error {
 	}
 	switch goOs {
 	case "darwin", "linux":
-		for name, _ := range tools {
+		for name := range tools {
 			toolUrl := fmt.Sprintf(tools[name], cloakVersion, gocryptfsVersion, goOs)
 			if err := downloadExecutable(toolUrl, name); err != nil {
 				return err
