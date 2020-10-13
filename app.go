@@ -101,7 +101,7 @@ func NewApp() *App {
 	app.repo = models.NewVaultRepo(app.db)
 
 	// Setup menu icon
-	systray.SetTemplateIcon(icons.TRAY_TPL, icons.TRAY)
+	systray.SetTemplateIcon(icons.TrayTemplate, icons.Tray)
 	systray.SetTooltip("Cloak")
 	openBrowser := systray.AddMenuItem(i18n.T("open"), "")
 	quit := systray.AddMenuItem(i18n.T("quit"), "")
