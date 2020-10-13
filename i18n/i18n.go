@@ -1,9 +1,11 @@
-//go:generate go run bundle.go
+//go:generate go run bundler.go
 
 package i18n
 
 import (
 	"fmt"
+	"github.com/tidwall/gjson"
+	"strings"
 )
 
 var l localizer
@@ -13,7 +15,7 @@ var l localizer
 var C = make(chan string)
 
 type localizer struct {
-	data          map[string]map[string]string // language => {key => string}
+	data          string
 	currentLocale string
 }
 
@@ -24,17 +26,16 @@ func (l *localizer) translate(key string) string {
 	if locale == "" {
 		locale = "en"
 	}
-	if locale, ok := l.data[locale]; ok {
-		if str, ok := locale[key]; ok {
-			return str
-		}
+	result := gjson.Get(l.data, strings.Join([]string{locale, key}, "."))
+	if result.Exists() {
+		return result.String()
 	}
 	return ""
 }
 
 // setLocale sets current language
 func (l *localizer) setLocale(lang string) error {
-	if _, ok := l.data[lang]; ok {
+	if gjson.Get(l.data, lang).Exists() {
 		l.currentLocale = lang
 		return nil
 	}

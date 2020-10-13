@@ -28,16 +28,10 @@ import "github.com/tidwall/gjson"
 
 func init() {
 	json := ` + "`{{ compact .jsonBytes }}`" + `
-	l.data = map[string]map[string]string{}
-	gjson.Parse(json).ForEach(func(key, value gjson.Result) bool {
-		locale := map[string]string{}
-		value.ForEach(func(subKey, subValue gjson.Result) bool {
-			locale[subKey.String()] = subValue.String()
-			return true
-		})
-		l.data[key.String()] = locale
-		return true
-	})
+	if !gjson.Valid(json) {
+		panic("malformed i18n data")
+	}
+	l.data = json
 }
 `))
 
