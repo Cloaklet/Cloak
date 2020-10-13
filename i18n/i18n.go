@@ -7,7 +7,10 @@ import (
 )
 
 var l localizer
-var c = make(chan string) // Locale chanegs will be sent through this channel
+
+// C is a channel through which the locale changes will be sent.
+// Other parts of the application can receive locale changes from this channel and refresh their UI.
+var C = make(chan string)
 
 type localizer struct {
 	data          map[string]map[string]string // language => {key => string}
@@ -47,7 +50,7 @@ func T(key string) string {
 func SetLocale(lang string) error {
 	err := l.setLocale(lang)
 	if err == nil {
-		c <- lang
+		C <- lang
 	}
 	return err
 }
