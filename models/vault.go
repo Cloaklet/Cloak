@@ -2,6 +2,7 @@ package models
 
 import "database/sql"
 
+// Vault represents a vault, including its mountpoint/readonly settings.
 type Vault struct {
 	ID         int64  `db:"column:id;" json:"id"`
 	Path       string `db:"column:path;" json:"path"`
@@ -10,10 +11,12 @@ type Vault struct {
 	ReadOnly   bool   `db:"column:readonly;" json:"readonly"`
 }
 
+// VaultRepo manages vaults.
 type VaultRepo struct {
 	*BaseRepo
 }
 
+// NewVaultRepo creates a new VaultRepo instance
 func NewVaultRepo(db *sql.DB) *VaultRepo {
 	return &VaultRepo{&BaseRepo{db}}
 }
@@ -41,10 +44,10 @@ func (r *VaultRepo) Create(values map[string]interface{}, tx Transactional) (vau
 	)
 	if err != nil {
 		return
-	} else {
-		vault.ID, err = result.LastInsertId()
-		return
 	}
+
+	vault.ID, err = result.LastInsertId()
+	return
 }
 
 // Get gets a vault by ID
@@ -74,16 +77,21 @@ func (r *VaultRepo) Delete(v *Vault, tx Transactional) error {
 	if tx == nil {
 		tx = r.db
 	}
-	if result, err := tx.Exec(`DELETE FROM vaults WHERE id = ?;`, v.ID); err != nil {
+
+	var (
+		result sql.Result
+		err    error
+	)
+	if result, err = tx.Exec(`DELETE FROM vaults WHERE id = ?;`, v.ID); err != nil {
 		return err
-	} else {
-		if _, err = result.RowsAffected(); err != nil {
-			return err
-		} else {
-			v.ID = 0
-			return nil
-		}
 	}
+
+	if _, err = result.RowsAffected(); err != nil {
+		return err
+	}
+
+	v.ID = 0
+	return nil
 }
 
 // List lists all existing vault records
@@ -94,16 +102,16 @@ func (r *VaultRepo) List(tx Transactional) (vaults []Vault, err error) {
 	var rows *sql.Rows
 	if rows, err = tx.Query(`SELECT * FROM vaults ORDER BY id ASC;`); err != nil {
 		return
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			var vault Vault
-			err = rows.Scan(r.FieldPointers(&vault)...)
-			if err != nil {
-				return
-			}
-			vaults = append(vaults, vault)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var vault Vault
+		err = rows.Scan(r.FieldPointers(&vault)...)
+		if err != nil {
+			return
 		}
+		vaults = append(vaults, vault)
 	}
 	return
 }
