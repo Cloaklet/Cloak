@@ -7,7 +7,7 @@ import (
 )
 
 var l localizer
-var C = make(chan string) // Locale chanegs will be sent through this channel
+var c = make(chan string) // Locale chanegs will be sent through this channel
 
 type localizer struct {
 	data          map[string]map[string]string // language => {key => string}
@@ -47,7 +47,7 @@ func T(key string) string {
 func SetLocale(lang string) error {
 	err := l.setLocale(lang)
 	if err == nil {
-		C <- lang
+		c <- lang
 	}
 	return err
 }
