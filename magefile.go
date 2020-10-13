@@ -64,7 +64,6 @@ func buildForTarget(c context.Context) (output string, err error) {
 	buildCmd := []string{
 		`go`, `build`,
 		`-ldflags`, strings.Join([]string{
-			`-X 'main.ReleaseMode=true'`,
 			`-X 'Cloak/extension.ReleaseMode=true'`,
 			fmt.Sprintf(`-X 'Cloak/version.Version=%s'`, versionString),
 			fmt.Sprintf(`-X 'Cloak/version.BuildTime=%s'`, currentTimeString),

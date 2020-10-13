@@ -16,8 +16,6 @@ import (
 	"path/filepath"
 )
 
-var ReleaseMode string
-
 // A dumb debug logger for migrator
 type logPrinter struct{}
 
@@ -81,7 +79,7 @@ func (a *App) loadConfig() {
 
 // NewApp constructs and returns a new App instance
 func NewApp() *App {
-	app := &App{releaseMode: ReleaseMode == "true"}
+	app := &App{releaseMode: extension.ReleaseMode == "true"}
 	appDataDir, err := extension.GetAppDataDirectory()
 	if err != nil {
 		logger.Fatal().Err(err).
