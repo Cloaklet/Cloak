@@ -28,6 +28,9 @@ script:
   - go test -v ./...
   - cd frontend && npm install && cd .. && go run build.go build
 
+after_script:
+  - curl -d "repo=github.com/Cloaklet/Cloak" https://goreportcard.com/checks
+
 deploy:
   - provider: releases
     api_key:
