@@ -83,6 +83,10 @@ func buildForTarget(c context.Context) (output string, err error) {
 		if err = os.MkdirAll(executableDir, 0755); err != nil {
 			return
 		}
+		resourceDir := filepath.Join(`Cloak.app`, `Contents`, `Resources`)
+		if err = os.MkdirAll(resourceDir, 0755); err != nil {
+			return
+		}
 
 		// Here's a list of files to be bundled
 		files := map[string]string{
@@ -90,6 +94,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 			"Info.plist":     filepath.Join(executableDir, `..`, `Info.plist`),
 			"gocryptfs":      filepath.Join(executableDir, "gocryptfs"),
 			"gocryptfs-xray": filepath.Join(executableDir, "gocryptfs-xray"),
+			"Cloak.icns":     filepath.Join(resourceDir, "Cloak.icns"),
 		}
 		for filename := range files {
 			if err := sh.Copy(files[filename], filename); err != nil {
@@ -139,7 +144,7 @@ func buildForTarget(c context.Context) (output string, err error) {
 			`--executable`, executable,
 			`--appdir`, `AppDir`,
 			`--desktop-file`, `Cloak.desktop`,
-			`--icon-file`, `Cloak.svg`,
+			`--icon-file`, `Cloak.png`,
 			`--output`, `appimage`,
 		)
 		output = fmt.Sprintf(`Cloak-%s-%s.AppImage`, versionString, linuxArch(env["GOARCH"]))

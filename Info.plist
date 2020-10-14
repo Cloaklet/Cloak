@@ -10,6 +10,8 @@
         <string>Cloak</string>
         <key>CFBundleExecutable</key>
         <string>cloak</string>
+        <key>CFBundleIconFile</key>
+        <string>Cloak</string>
         <key>CFBundlePackageType</key>
         <string>APPL</string>
         <key>NSHighResolutionCapable</key>
