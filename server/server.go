@@ -829,7 +829,7 @@ func (s *ApiServer) GetOptions(c echo.Context) error {
 			"gitCommit": version.GitCommit,
 		},
 		"options": echo.Map{
-			"locale": i18n.GetCurrentLocale(),
+			"locale": i18n.GetLocalizer().GetCurrentLocale(),
 		},
 	})
 }
@@ -844,8 +844,9 @@ func (s *ApiServer) SetOptions(c echo.Context) error {
 		return ErrMalformedInput
 	}
 
-	if appOption.Locale != i18n.GetCurrentLocale() {
-		if err := i18n.SetLocale(appOption.Locale); err != nil {
+	translator := i18n.GetLocalizer()
+	if appOption.Locale != translator.GetCurrentLocale() {
+		if err := translator.SetLocale(appOption.Locale); err != nil {
 			return ErrMalformedInput
 		}
 	}

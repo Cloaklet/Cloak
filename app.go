@@ -70,7 +70,7 @@ func (a *App) loadConfig() {
 		return
 	}
 
-	if err := i18n.SetLocale(appOptions.Locale); err != nil {
+	if err := i18n.GetLocalizer().SetLocale(appOptions.Locale); err != nil {
 		logger.Error().Err(err).
 			Str("locale", appOptions.Locale).
 			Msg("Failed to set locale loaded from config file")
@@ -100,21 +100,24 @@ func NewApp() *App {
 	app.migrate()
 	app.repo = models.NewVaultRepo(app.db)
 
+	// i18n
+	translator := i18n.GetLocalizer()
+
 	// Setup menu icon
 	systray.SetTemplateIcon(icons.TrayTemplate, icons.Tray)
 	systray.SetTooltip("Cloak")
-	openBrowser := systray.AddMenuItem(i18n.T("open"), "")
-	quit := systray.AddMenuItem(i18n.T("quit"), "")
+	openBrowser := systray.AddMenuItem(translator.T("open"), "")
+	quit := systray.AddMenuItem(translator.T("quit"), "")
 
 	// Realtime i18n changing
 	go func() {
 		for {
 			select {
-			case locale, ok := <-i18n.C:
+			case locale, ok := <-translator.Ch:
 				if ok {
 					logger.Debug().Str("locale", locale).Msg("Locale changed")
-					openBrowser.SetTitle(i18n.T("open"))
-					quit.SetTitle(i18n.T("quit"))
+					openBrowser.SetTitle(translator.T("open"))
+					quit.SetTitle(translator.T("quit"))
 					// Persistent locale to config file
 					appOptions := &Options{Locale: locale}
 					cfg := ini.Empty()
