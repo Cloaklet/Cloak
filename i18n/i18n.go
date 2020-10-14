@@ -13,12 +13,15 @@ var l Localizer
 var data string
 var once sync.Once
 
+// Localizer is a type which can translates JSON key path to string in given locale.
+// It also features a channel through which locale change can be monitored.
 type Localizer struct {
 	data          string
 	currentLocale string
 	Ch            chan string
 }
 
+// GetLocalizer returns the global localizer (translator)
 func GetLocalizer() *Localizer {
 	once.Do(func() {
 		l = Localizer{
