@@ -1,4 +1,4 @@
-<p align="center"><img src="Cloak.png"></p>
+<p align="center"><img src="Cloak.png" alt="Project logo" width="220" height="220"></p>
 <h3 align="center">Cloak - File encryption made easy</h3>
 <p align="center">A simple GUI app for gocryptfs.</p>
 
