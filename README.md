@@ -57,6 +57,7 @@ The frontend (UI) project resides in `frontend` directory. It's a standard Vue p
 You should build the frontend project first so the backend can find assets for the UI.
 
 - Inside the `frontend` directory, run `npm run build`.
+- Run `go generate ./...` to generate necessary source codes.
 - To run the app, simply invoke `go run .` in the project root.
 
 # Notice
