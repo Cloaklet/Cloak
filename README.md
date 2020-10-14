@@ -1,9 +1,21 @@
-# Cloak
+<p align="center"><img src="Cloak.png"></p>
+<h3 align="center">Cloak - File encryption made easy</h3>
+<p align="center">A simple GUI app for gocryptfs.</p>
 
-[![Build Status](https://img.shields.io/travis/com/Cloaklet/Cloak?style=for-the-badge)](https://travis-ci.com/Cloaklet/Cloak)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Cloaklet/Cloak?style=for-the-badge)](https://goreportcard.com/report/github.com/Cloaklet/Cloak)
-![GitHub](https://img.shields.io/github/license/Cloaklet/Cloak?style=for-the-badge)
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/Cloaklet/Cloak?style=for-the-badge)](https://github.com/Cloaklet/Cloak/releases/latest)
+<p align="center">
+  <a href="https://travis-ci.com/Cloaklet/Cloak">
+    <img src="https://img.shields.io/travis/com/Cloaklet/Cloak?style=for-the-badge" alt="Build Status">
+  </a>
+  <a href="https://goreportcard.com/report/github.com/Cloaklet/Cloak">
+    <img src="https://goreportcard.com/badge/github.com/Cloaklet/Cloak?style=for-the-badge" alt="Go Report Card">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/github/license/Cloaklet/Cloak?style=for-the-badge" alt="Project License">
+  </a>
+  <a href="https://github.com/Cloaklet/Cloak/releases/latest">
+    <img src="https://img.shields.io/github/v/release/Cloaklet/Cloak?style=for-the-badge" alt="GitHub release">
+  </a>
+</p>
 
 A simple GUI app for gocryptfs, using web tech stack. Works on macOS and Linux.
 
