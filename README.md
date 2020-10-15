@@ -1,6 +1,6 @@
 <p align="center"><img src="Cloak.png" alt="Project logo" width="220" height="220"></p>
 <h3 align="center">Cloak - File encryption made easy</h3>
-<p align="center">A simple GUI app for gocryptfs.</p>
+<p align="center">A simple GUI for gocryptfs.</p>
 
 <p align="center">
   <a href="https://travis-ci.com/Cloaklet/Cloak">
@@ -17,9 +17,19 @@
   </a>
 </p>
 
-A simple GUI app for gocryptfs, using web tech stack. Works on macOS and Linux.
+Cloak is a simple GUI for gocryptfs built with Golang and web tech. It works on macOS and Linux.
 
-UI / interaction mimicked from Cryptomator. English and Simplified Chinese are included.
+Features:
+
+- A simple UI for managing your gocryptfs vaults, just like Cryptomator.
+- Password changing / password resetting (with master key).
+- Warn you about password strength.
+- Fast to launch or quit.
+- Internationalization. Current supported languages:
+  - English
+  - Simplified Chinese
+
+UI / interaction mimicked from Cryptomator.
 
 # Usage
 
