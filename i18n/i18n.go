@@ -59,8 +59,5 @@ func (l *Localizer) SetLocale(lang string) error {
 
 // GetCurrentLocale returns current effective locale
 func (l *Localizer) GetCurrentLocale() string {
-	if l.currentLocale != "" {
-		return l.currentLocale
-	}
-	return "en"
+	return l.currentLocale
 }
