@@ -4,9 +4,9 @@ package extension
 
 import (
 	"fmt"
+	"github.com/adrg/xdg"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 )
 
@@ -29,11 +29,11 @@ func isFuseAvailable() bool {
 // locateLogDirectory returns the path in which log files should be stored.
 // The directory gets created if it does not exist.
 func locateLogDirectory() (string, error) {
-	currentUser, err := user.Current()
+	dataDir, err := locateAppDataDirectory()
 	if err != nil {
 		return "", err
 	}
-	logDir := filepath.Join(currentUser.HomeDir, ".cloaklet.cloak", "logs")
+	logDir := filepath.Join(dataDir, "logs")
 
 	var info os.FileInfo
 	if info, err = os.Stat(logDir); err != nil && !os.IsNotExist(err) {
@@ -51,11 +51,8 @@ func locateLogDirectory() (string, error) {
 // locateAppDataDirectory returns path of where we should store our data for current user.
 // The directory gets created if it does not exist.
 func locateAppDataDirectory() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", err
-	}
-	dataDir := filepath.Join(currentUser.HomeDir, ".cloaklet.cloak", "data")
+	var err error
+	dataDir := filepath.Join(xdg.DataHome, "Cloak")
 
 	var info os.FileInfo
 	if info, err = os.Stat(dataDir); err != nil && !os.IsNotExist(err) {
