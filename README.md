@@ -38,6 +38,20 @@ UI / interaction mimicked from Cryptomator.
 - For macOS users, after decompressing the ZIP archive, you might need to run `xattr -d -r com.apple.quarantine Cloak.app` in Terminal, otherwise GateKeeper would refuse to run the app.
 - You can open the UI or quit the app via `Open` menu item of the tray icon (or menubar icon).
 
+# Where is my data stored?
+
+- Vault list and application config are stored at:
+  - `$XDG_DATA_HOME/Cloak` on Linux. If `$XDG_DATA_HOME` is not set, [it falls back to `$HOME/.local/share`](https://github.com/adrg/xdg#default-locations).
+  - `~/Library/Application Support/Cloak` on macOS, see Apple's [Library Directory Details](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/MacOSXDirectories/MacOSXDirectories.html#//apple_ref/doc/uid/TP40010672-CH10-SW1)
+- Log files are stored at:
+  - `$XDG_DATA_HOME/Cloak/logs` on Linux.
+  - `~/Library/Logs/Cloak` on macOS.
+
+Before `0.8.0`, Cloak store all its data and log files in `~/.cloaklet.cloak` directory on Linux.
+
+Cloak automatically clears log file content each time it starts up.
+Sensitive information like vault passwords or master keys are never sent to log.
+
 # Why
 
 I wrote a similar GUI called [Cloaklet](https://github.com/Cloaklet/Cloaklet) using QML + Golang.
@@ -88,6 +102,7 @@ You should build the frontend project first so the backend can find assets for t
 - Windows is not supported, because `gocryptfs` does not work on Windows.
 - Avoid committing `statik` module because it contains large blob of files produced by the frontend project.
 - If you are building the app yourself, missing `libxapp-dev` would not result in error; But when running the built AppImage on Linux Mint, menu item will lose highlighting.
+- You should install `xdg-open` on Linux, otherwise drive revealing will not work.
 
 # Credits
 
