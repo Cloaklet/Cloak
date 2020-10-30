@@ -50,7 +50,7 @@ func (a *App) migrate() {
 	if err = m.Migrate(a.db); err != nil {
 		logger.Fatal().Err(err).Msg("Failed to run migrations")
 	} else {
-		logger.Debug().Msg("Migration ok")
+		logger.Debug().Msg("Database migration ok")
 	}
 }
 
