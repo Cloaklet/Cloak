@@ -40,17 +40,21 @@ UI / interaction mimicked from Cryptomator.
 
 # Where is my data stored?
 
-- Vault list and application config are stored at:
+- Vault list is stored at:
   - `$XDG_DATA_HOME/Cloak` on Linux. If `$XDG_DATA_HOME` is not set, [it falls back to `$HOME/.local/share`](https://github.com/adrg/xdg#default-locations).
   - `~/Library/Application Support/Cloak` on macOS, see Apple's [Library Directory Details](https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/MacOSXDirectories/MacOSXDirectories.html#//apple_ref/doc/uid/TP40010672-CH10-SW1)
+- Configuration file is stored at:
+  - `$XDG_CONFIG_HOME/Cloak` on Linux. If `$XDG_CONFIG_HOME` is not set, [it falls back to `$HOME/.config`](https://github.com/adrg/xdg#default-locations).
+  - `~/Library/Application Support/Cloak` on macOS.
 - Log files are stored at:
   - `$XDG_DATA_HOME/Cloak/logs` on Linux.
   - `~/Library/Logs/Cloak` on macOS.
 
 Before `0.8.0`, Cloak store all its data and log files in `~/.cloaklet.cloak` directory on Linux.
+By running a new version of Cloak, they get moved to the new directories.
 
 Cloak automatically clears log file content each time it starts up.
-Sensitive information like vault passwords or master keys are never sent to log.
+Sensitive information like vault passwords or master keys are never logged.
 
 # Why
 
