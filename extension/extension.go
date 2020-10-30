@@ -6,7 +6,9 @@ import (
 	zlog "github.com/rs/zerolog/log"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"runtime"
 )
 
 // ReleaseMode is set in build time (to either "true" or "false"), it
@@ -35,6 +37,61 @@ func init() {
 	}
 	zlog.Logger = zlog.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat})
 
+	migrateLegacyDirectories()
+}
+
+// migrateLegacyDirectories migrates legacy directories for Linux (< v0.8.0).
+// It might panic.
+func migrateLegacyDirectories() {
+	logger := GetLogger("extension")
+	if runtime.GOOS != "linux" {
+		return
+	}
+
+	currentUser, err := user.Current()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to get current user")
+	}
+
+	// Make sure new locations exist
+	for dirName, dirPathFunc := range map[string]func() string{
+		"appDataDir": GetAppDataDirectory,
+		"configDir":  GetConfigDirectory,
+		"logDir":     locateLogDirectory,
+	} {
+		dirPath, dirErr := EnsureDirectoryExists(dirPathFunc())
+		if dirErr != nil {
+			logger.Fatal().Err(dirErr).
+				Str("name", dirName).
+				Str("path", dirPath).
+				Msg("Failed to ensure directory existence")
+		}
+	}
+
+	// Move database file
+	// Move files
+	for fromPath, toPath := range map[string]string{
+		filepath.Join(currentUser.HomeDir, ".cloaklet.cloak", "data", "vaults.db"):   filepath.Join(GetAppDataDirectory(), "vaults.db"),
+		filepath.Join(currentUser.HomeDir, ".cloaklet.cloak", "data", "options.ini"): filepath.Join(GetConfigDirectory(), "options.ini"),
+	} {
+		if err := os.Rename(fromPath, toPath); err != nil && !os.IsNotExist(err) {
+			logger.Fatal().Err(err).
+				Str("from", fromPath).
+				Str("to", toPath).
+				Msg("Failed to move file to its new location")
+		}
+	}
+
+	// Remove old directory
+	legacyDataRoot := filepath.Join(currentUser.HomeDir, ".cloaklet.cloak")
+	if err := os.RemoveAll(legacyDataRoot); err != nil && !os.IsNotExist(err) {
+		logger.Warn().Err(err).
+			Str("path", legacyDataRoot).
+			Msg("Failed to delete legacy directory")
+	} else {
+		logger.Info().Str("path", legacyDataRoot).
+			Msg("Migrated old data files")
+	}
 }
 
 // OpenPath opens given path in OS file manager
@@ -97,7 +154,7 @@ func EnsureDirectoryExists(path string) (string, error) {
 			return "", err
 		}
 	}
-	if !info.IsDir() {
+	if info != nil && !info.IsDir() {
 		return "", fmt.Errorf("%s is not a directory", path)
 	}
 	return path, nil
