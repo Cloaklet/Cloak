@@ -26,6 +26,7 @@ func (l *logPrinter) Printf(f string, v ...interface{}) {
 // App is the main type to control lifecycle of the whole application
 type App struct {
 	dataDir     string
+	configDir   string
 	apiServer   *server.ApiServer
 	repo        *models.VaultRepo
 	db          *sql.DB
@@ -61,7 +62,7 @@ type Options struct {
 func (a *App) loadConfig() {
 	appOptions := new(Options)
 	if err := ini.MapTo(
-		appOptions, filepath.Join(a.dataDir, "options.ini"),
+		appOptions, filepath.Join(a.configDir, "options.ini"),
 	); err != nil && !os.IsNotExist(err) {
 		logger.Error().Err(err).Msg("Failed to map app options from config file")
 		return
@@ -80,18 +81,27 @@ func (a *App) loadConfig() {
 // NewApp constructs and returns a new App instance
 func NewApp() *App {
 	app := &App{releaseMode: extension.ReleaseMode == "true"}
-	appDataDir, err := extension.GetAppDataDirectory()
-	if err != nil {
-		logger.Fatal().Err(err).
-			Str("appDataDir", appDataDir).
-			Msg("Failed to get application data directory")
-	} else {
-		logger.Info().Str("appDataDir", appDataDir).Msg("Determined application data directory")
-		app.dataDir = appDataDir
+
+	// Locate data directories
+	for dirName, dirPathFunc := range map[string]func() string{
+		"appDataDir": extension.GetAppDataDirectory,
+		"configDir":  extension.GetConfigDirectory,
+	} {
+		dirPath, err := extension.EnsureDirectoryExists(dirPathFunc())
+		if err != nil {
+			logger.Fatal().Err(err).
+				Str("name", dirName).
+				Str("path", dirPath).
+				Msg("Failed to get directory")
+		}
+		logger.Info().Str("name", dirName).Str("path", dirPath).Msg("Determined directory")
 	}
+	app.dataDir = extension.GetAppDataDirectory()
+	app.configDir = extension.GetConfigDirectory()
 
 	// Load database
-	app.db, err = sql.Open("sqlite3", filepath.Join(appDataDir, "vaults.db"))
+	var err error
+	app.db, err = sql.Open("sqlite3", filepath.Join(app.dataDir, "vaults.db"))
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to open vault database")
 	}
@@ -125,7 +135,7 @@ func NewApp() *App {
 						logger.Error().Err(err).Msg("Failed to update app options")
 						continue
 					}
-					if err := cfg.SaveTo(filepath.Join(app.dataDir, "options.ini")); err != nil {
+					if err := cfg.SaveTo(filepath.Join(app.configDir, "options.ini")); err != nil {
 						logger.Error().Err(err).Msg("Failed to save app options to config file")
 					}
 				}

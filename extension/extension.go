@@ -1,6 +1,7 @@
 package extension
 
 import (
+	"fmt"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"os"
@@ -19,7 +20,7 @@ func init() {
 
 	// Global zerolog settings
 	if ReleaseMode == "true" {
-		if logDir, err := locateLogDirectory(); err == nil {
+		if logDir, err := EnsureDirectoryExists(locateLogDirectory()); err == nil {
 			logFile, err := os.OpenFile(filepath.Join(logDir, "Cloak.log"), os.O_WRONLY|os.O_CREATE, 0640)
 			if err == nil {
 				_ = logFile.Truncate(0)
@@ -70,7 +71,35 @@ func IsFuseAvailable() bool {
 	return isFuseAvailable()
 }
 
-// GetAppDataDirectory locates path of an existing directory in which we can store our data.
-func GetAppDataDirectory() (string, error) {
+// GetAppDataDirectory locates a directory in which we can store our data.
+// The directory might not exist yet.
+func GetAppDataDirectory() string {
 	return locateAppDataDirectory()
+}
+
+// GetConfigDirectory locates a directory in which we can store our configuration file.
+// The directory might not exist yet.
+func GetConfigDirectory() string {
+	return locateConfigDirectory()
+}
+
+// EnsureDirectoryExists makes sure given directory path exists.
+// If the directory cannot be created, or it is an existing file, an error is returned.
+func EnsureDirectoryExists(path string) (string, error) {
+	var info os.FileInfo
+	var err error
+
+	if info, err = os.Stat(path); err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+		if err = os.Mkdir(path, 0750); err != nil {
+			return "", err
+		}
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("%s is not a directory", path)
+	}
+	return path, nil
+
 }
