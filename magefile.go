@@ -181,22 +181,46 @@ func PackAssets(_ context.Context) error {
 		return err
 	}
 
-	return sh.Run(`statik`, `-src`, `frontend/dist`, `-dest`, `.`, `-f`)
+	goPath, err := sh.Output(`go`, `env`, `GOPATH`)
+	if err != nil {
+		return err
+	}
+	if goPath == "" {
+		return fmt.Errorf("failed to get GOPATH")
+	}
+
+	statikPath := filepath.Join(goPath, "bin", "statik")
+	return sh.Run(statikPath, `-src`, `frontend/dist`, `-dest`, `.`, `-f`)
 }
 
 // InstallDeps installs extra tools required for building
 func InstallDeps(_ context.Context) error {
+	goPath, err := sh.Output(`go`, `env`, `GOPATH`)
+	if err != nil {
+		return err
+	}
+	if goPath == "" {
+		return fmt.Errorf("failed to get GOPATH")
+	}
+
 	fmt.Println("Installing Deps...")
 	for toolBinary, toolPkg := range map[string]string{
 		"statik": "github.com/rakyll/statik",
 	} {
-		if toolPath, err := exec.LookPath(toolBinary); err != nil {
-			fmt.Printf("> %s not found, install from %s\n", toolBinary, toolPkg)
-			if err = sh.Run(`go`, `install`, toolPkg); err != nil {
-				return err
-			}
-		} else {
-			fmt.Printf("> Found %s: %s\n", toolBinary, toolPath)
+		if _, err := exec.LookPath(toolBinary); err == nil {
+			fmt.Printf("> %s found in PATH\n", toolBinary)
+			continue
+		}
+
+		goPathBin := filepath.Join(goPath, "bin", toolBinary)
+		if info, err := os.Stat(goPathBin); err == nil && !info.IsDir() {
+			fmt.Printf("> %s found in GOPATH/bin: %s\n", toolBinary, goPathBin)
+			continue
+		}
+
+		fmt.Printf("> %s not found, install from %s\n", toolBinary, toolPkg)
+		if err = sh.Run(`go`, `install`, toolPkg); err != nil {
+			return err
 		}
 	}
 	//return sh.Run(`go`, `get`, `github.com/akavel/rsrc`)
