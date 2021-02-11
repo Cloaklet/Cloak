@@ -15,6 +15,7 @@ require (
 	github.com/pkg/xattr v0.4.1
 	github.com/rakyll/statik v0.1.7
 	github.com/rs/zerolog v1.19.0
+	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/tidwall/gjson v1.6.1
 	github.com/tidwall/sjson v1.1.1
