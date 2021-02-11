@@ -27,7 +27,7 @@ func GetLocalizer() *Localizer {
 		l = Localizer{
 			data:          data,
 			currentLocale: "en",
-			Ch:            make(chan string),
+			Ch:            make(chan string, 1),
 		}
 	})
 	return &l

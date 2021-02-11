@@ -33,11 +33,7 @@ type App struct {
 	releaseMode bool
 }
 
-func (a *App) stop() {
-	a.db.Close()
-	a.apiServer.Stop()
-}
-
+// migrate runs database migrations
 func (a *App) migrate() {
 	m, err := migrator.New(
 		migrator.WithLogger(&logPrinter{}),
@@ -110,14 +106,29 @@ func NewApp() *App {
 	app.migrate()
 	app.repo = models.NewVaultRepo(app.db)
 
-	// i18n
-	translator := i18n.GetLocalizer()
+	// Load app config
+	app.loadConfig()
 
+	app.apiServer = server.NewApiServer(app.repo, app.releaseMode)
+
+	logger.Debug().Msg("App created")
+	return app
+}
+
+// Start starts the app.
+// It does not wait for the app to exit, so an external event loop must be maintained elsewhere.
+// Systray must be ready before this method call be called.
+func (a *App) Start() {
 	// Setup menu icon
 	systray.SetTemplateIcon(icons.TrayTemplate, icons.Tray)
 	systray.SetTooltip("Cloak")
-	openBrowser := systray.AddMenuItem(translator.T("open"), "")
-	quit := systray.AddMenuItem(translator.T("quit"), "")
+
+	// i18n
+	translator := i18n.GetLocalizer()
+
+	// Setup menu items
+	openMenu := systray.AddMenuItem(translator.T("open"), "")
+	quitMenu := systray.AddMenuItem(translator.T("quit"), "")
 
 	go func() {
 		for {
@@ -126,8 +137,9 @@ func NewApp() *App {
 			case locale, ok := <-translator.Ch:
 				if ok {
 					logger.Debug().Str("locale", locale).Msg("Locale changed")
-					openBrowser.SetTitle(translator.T("open"))
-					quit.SetTitle(translator.T("quit"))
+					openMenu.SetTitle(translator.T("open"))
+					quitMenu.SetTitle(translator.T("quit"))
+
 					// Persistent locale to config file
 					appOptions := &Options{Locale: locale}
 					cfg := ini.Empty()
@@ -135,26 +147,28 @@ func NewApp() *App {
 						logger.Error().Err(err).Msg("Failed to update app options")
 						continue
 					}
-					if err := cfg.SaveTo(filepath.Join(app.configDir, "options.ini")); err != nil {
+					if err := cfg.SaveTo(filepath.Join(a.configDir, "options.ini")); err != nil {
 						logger.Error().Err(err).Msg("Failed to save app options to config file")
 					}
 				}
 			// Menu item events
-			case <-quit.ClickedCh:
+			case <-quitMenu.ClickedCh:
 				systray.Quit()
-			case <-openBrowser.ClickedCh:
+			case <-openMenu.ClickedCh:
 				browser.OpenURL("http://127.0.0.1:9763")
 			}
 		}
 	}()
 
-	// Load app config
-	app.loadConfig()
-
 	// Run API server in the background
-	app.apiServer = server.NewApiServer(app.repo, app.releaseMode)
-	go func() {
-		app.apiServer.Start("127.0.0.1:9763")
-	}()
-	return app
+	go a.apiServer.Start("127.0.0.1:9763")
+
+	logger.Info().Msg("App started")
+}
+
+// Stop stops the app
+func (a *App) Stop() {
+	a.db.Close()
+	a.apiServer.Stop()
+	logger.Info().Msg("App stopped")
 }

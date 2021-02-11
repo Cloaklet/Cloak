@@ -13,12 +13,6 @@ func init() {
 }
 
 func main() {
-	var app *App
-	systray.Run(func() {
-		app = NewApp()
-		logger.Info().Msg("Ready")
-	}, func() {
-		app.stop()
-		logger.Info().Msg("Quit")
-	})
+	app := NewApp()
+	systray.Run(app.Start, app.Stop)
 }
