@@ -119,10 +119,10 @@ func NewApp() *App {
 	openBrowser := systray.AddMenuItem(translator.T("open"), "")
 	quit := systray.AddMenuItem(translator.T("quit"), "")
 
-	// Realtime i18n changing
 	go func() {
 		for {
 			select {
+			// Realtime i18n changing
 			case locale, ok := <-translator.Ch:
 				if ok {
 					logger.Debug().Str("locale", locale).Msg("Locale changed")
@@ -139,14 +139,7 @@ func NewApp() *App {
 						logger.Error().Err(err).Msg("Failed to save app options to config file")
 					}
 				}
-			}
-		}
-	}()
-
-	// Menu item events
-	go func() {
-		for {
-			select {
+			// Menu item events
 			case <-quit.ClickedCh:
 				systray.Quit()
 			case <-openBrowser.ClickedCh:
