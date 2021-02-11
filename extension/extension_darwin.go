@@ -26,8 +26,14 @@ func openPath(path string) {
 // isFuseAvailable detects FUSE availability for macOS.
 // OSXFUSE provides FUSE support for macOS.
 func isFuseAvailable() bool {
-	loadFuseBin := "/Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse"
-	if info, err := os.Stat(loadFuseBin); err == nil {
+	for _, fuseBin := range []string{
+		"/Library/Filesystems/macfuse.fs/Contents/Resources/load_macfuse",
+		"/Library/Filesystems/osxfuse.fs/Contents/Resources/load_osxfuse",
+	} {
+		info, err := os.Stat(fuseBin)
+		if err != nil {
+			continue
+		}
 		return !info.IsDir()
 	}
 	return false
