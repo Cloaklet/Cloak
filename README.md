@@ -102,7 +102,7 @@ You should build the frontend project first so the backend can find assets for t
 
 # Notice
 
-- `gocryptfs` requires `FUSE` to function. For macOS please install `OSXFUSE`.
+- `gocryptfs` requires `FUSE` to function. For macOS please install `OSXFUSE` (now [macFUSE](https://osxfuse.github.io/)).
 - Windows is not supported, because `gocryptfs` does not work on Windows.
 - Avoid committing `statik` module because it contains large blob of files produced by the frontend project.
 - If you are building the app yourself, missing `libxapp-dev` would not result in error; But when running the built AppImage on Linux Mint, menu item will lose highlighting.
