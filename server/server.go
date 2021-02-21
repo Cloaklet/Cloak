@@ -57,7 +57,7 @@ func (s *ApiServer) Start(address string) error {
 // Stop stops the server
 // All vaults will be locked before the server stops.
 func (s *ApiServer) Stop() error {
-	logger.Debug().Msg("Requestd to stop API server")
+	logger.Debug().Msg("Requested to stop API server")
 
 	// Lock internal maps
 	s.lock.Lock()
@@ -170,8 +170,8 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 			},
 		}))
 	}
-	apis := server.echo.Group("/api", server.CheckRuntimeDeps)
 
+	apis := server.echo.Group("/api", server.CheckRuntimeDeps)
 	{
 		apis.GET("/vaults", server.ListVaults)
 		apis.DELETE("/vault/:id", server.RemoveVault)
@@ -189,6 +189,7 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		apis.GET("/options", server.GetOptions)
 		apis.POST("/options", server.SetOptions)
 	}
+
 	// We use `rand` to generate random mountpoint name, so be sure to seed it upon start up
 	rand.Seed(time.Now().UTC().UnixNano())
 	return &server
@@ -239,7 +240,8 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		return ErrMalformedInput
 	}
 
-	if form.Op == "unlock" {
+	switch form.Op {
+	case "unlock":
 		// Check current state
 		if _, ok := s.mountPoints[vaultId]; ok {
 			return ErrVaultAlreadyUnlocked
@@ -447,7 +449,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		}
 		// Respond
 		return ErrOk.WrapState("unlocked")
-	} else if form.Op == "lock" {
+	case "lock":
 		// Check current state
 		if _, ok := s.mountPoints[vaultId]; !ok {
 			return ErrVaultAlreadyLocked.WrapState("locked")
@@ -464,7 +466,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		// so no need to cleaning `s.processes` and `s.mountPoints` here.
 		// Respond
 		return ErrOk.WrapState("locked")
-	} else if form.Op == "reveal" {
+	case "reveal":
 		var mountPoint string
 		var ok bool
 		// Check current state
@@ -479,8 +481,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 
 		extension.OpenPath(mountPoint)
 		return ErrOk
-	} else {
-		// Currently not supported
+	default:
 		return ErrUnsupportedOperation
 	}
 }
@@ -645,7 +646,8 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 		return ErrMalformedInput
 	}
 
-	if form.Op == "add" {
+	switch form.Op {
+	case "add":
 		// Check path existence
 		if pathInfo, err := os.Stat(form.Path); err != nil || pathInfo.IsDir() {
 			return ErrPathNotExist
@@ -674,8 +676,7 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 			Vault: vault,
 			State: "locked",
 		})
-
-	} else if form.Op == "create" {
+	case "create":
 		// Check path existence
 		if pathInfo, err := os.Stat(form.Path); err != nil || !pathInfo.IsDir() {
 			return ErrPathNotExist
@@ -712,9 +713,7 @@ func (s *ApiServer) AddOrCreateVault(c echo.Context) error {
 			Int64("vaultId", vault.ID).
 			Msg("Added newly created vault")
 		return ErrOk.WrapItem(VaultInfo{Vault: vault, State: "locked"})
-
-	} else {
-		// Currently not supported
+	default:
 		return ErrUnsupportedOperation
 	}
 }
@@ -769,7 +768,7 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 
 		// Skip items that aren't visible in Finder app
 		if runtime.GOOS == "darwin" {
-			xattrs, err := xattr.Get(filepath.Join(form.Pwd, item.Name()), "com.apple.FinderInfo")
+			xAttrs, err := xattr.Get(filepath.Join(form.Pwd, item.Name()), "com.apple.FinderInfo")
 			if err != nil {
 				// No attribute is ok, other errors need to be logged
 				if errno, ok := err.(*xattr.Error); !ok || errno.Err != xattr.ENOATTR {
@@ -784,9 +783,9 @@ func (s *ApiServer) ListSubPaths(c echo.Context) error {
 			// https://discussions.apple.com/thread/5846108
 			// http://dubeiko.com/development/FileSystems/HFSPLUS/tn1150.html#FinderInfo
 			// https://apple.stackexchange.com/a/174571
-			if len(xattrs) == 32 && xattrs[8] > 40 {
+			if len(xAttrs) == 32 && xAttrs[8] > 40 {
 				logger.Debug().
-					Bytes("com.apple.FinderInfo", xattrs).
+					Bytes("com.apple.FinderInfo", xAttrs).
 					Str("pwd", form.Pwd).
 					Str("fileName", subItem.Name).
 					Msg("Item skipped")
