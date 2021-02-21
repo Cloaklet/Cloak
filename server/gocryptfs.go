@@ -125,7 +125,7 @@ func (s *ApiServer) GocryptfsChangeVaultPassword(path string, password string, n
 // Notice: `path` is the path to the vault directory.
 func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (string, error) {
 	var err error
-	var masterkey string
+	var masterKey string
 
 	vaultConfigPath := filepath.Join(path, "gocryptfs.conf")
 	xrayProc := exec.Command(s.xrayCmd, "-dumpmasterkey", vaultConfigPath)
@@ -138,7 +138,7 @@ func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (s
 		logger.Error().Err(err).
 			Str("vaultPath", path).
 			Msg("Failed to create STDIN pipe when revealing masterkey for vault")
-		return masterkey, err
+		return masterKey, err
 	}
 
 	go func() {
@@ -155,7 +155,7 @@ func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (s
 		rc := xrayProc.ProcessState.ExitCode()
 		errString := errorOutput.String()
 		outString := stdOutput.String()
-		errlog := logger.With().Err(err).
+		errLog := logger.With().Err(err).
 			Int("RC", rc).
 			Str("vaultPath", path).
 			Str("stdErr", errString).
@@ -163,24 +163,24 @@ func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (s
 			Logger()
 		switch rc {
 		case 12:
-			errlog.Error().Msg("Password incorrect")
-			return masterkey, ErrWrongPassword
+			errLog.Error().Msg("Password incorrect")
+			return masterKey, ErrWrongPassword
 		case 23:
-			errlog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
-			return masterkey, ErrCantOpenVaultConf
+			errLog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
+			return masterKey, ErrCantOpenVaultConf
 		case 24:
-			errlog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
-			return masterkey, ErrVaultUpdateConfFailed
+			errLog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
+			return masterKey, ErrVaultUpdateConfFailed
 		default:
-			errlog.Error().Msg("Unknown error when changing password for vault")
+			errLog.Error().Msg("Unknown error when changing password for vault")
 			if strings.TrimSpace(errString) == "" {
 				errString = outString
 			}
-			return masterkey, ErrUnknown.Reformat(errString)
+			return masterKey, ErrUnknown.Reformat(errString)
 		}
 	}
-	masterkey = strings.TrimSpace(stdOutput.String())
-	return masterkey, nil
+	masterKey = strings.TrimSpace(stdOutput.String())
+	return masterKey, nil
 }
 
 // GocryptfsResetVaultPassword reset password for vault using masterkey.

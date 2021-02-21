@@ -92,11 +92,9 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 	server := ApiServer{
 		repo:          repo,
 		echo:          echo.New(),
-		cmd:           "",
-		xrayCmd:       "",
 		fuseAvailable: extension.IsFuseAvailable(),
-		processes:     map[int64]*exec.Cmd{},
-		mountPoints:   map[int64]string{},
+		processes:     make(map[int64]*exec.Cmd),
+		mountPoints:   make(map[int64]string),
 	}
 
 	// Detect external runtime dependencies
