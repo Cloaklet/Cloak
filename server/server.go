@@ -13,7 +13,6 @@ import (
 	"github.com/pkg/xattr"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog"
-	zlog "github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
 	"math/rand"

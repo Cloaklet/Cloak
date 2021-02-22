@@ -214,7 +214,7 @@ export default new Vuex.Store({
                 commit('setVersion', {...item.version})
                 delete item.version
                 commit('setOptions', item.options)
-                return item.options || {locale: 'en', loglevel: 'INFO'}
+                return item.options || {locale: 'en'}
             })
         },
         listSubPaths({dispatch}, {path}) {
