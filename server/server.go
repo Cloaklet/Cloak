@@ -828,7 +828,7 @@ func (s *ApiServer) GetOptions(c echo.Context) error {
 		},
 		"options": echo.Map{
 			"locale":   i18n.GetLocalizer().GetCurrentLocale(),
-			"loglevel": strings.ToUpper(zlog.Logger.GetLevel().String()),
+			"loglevel": strings.ToUpper(zerolog.GlobalLevel().String()),
 		},
 	})
 }
