@@ -46,23 +46,24 @@ func (s *ApiServer) GocryptfsCreateVault(path string, password string) error {
 	if err = initProc.Run(); err != nil { // Failed to init vault, inspect error and respond to UI
 		rc := initProc.ProcessState.ExitCode()
 		errString := errorOutput.String()
-		errlog := logger.With().Err(err).
+		errLog := logger.With().
+			Err(err).
 			Int("RC", rc).
 			Str("vaultPath", path).
 			Str("stdErr", errString).
 			Logger()
 		switch rc {
 		case 6:
-			errlog.Error().Msg("New vault directory (CIPHERDIR) is not empty")
+			errLog.Error().Msg("New vault directory (CIPHERDIR) is not empty")
 			return ErrVaultDirNotEmpty
 		case 22:
-			errlog.Error().Msg("Password for new vault is empty")
+			errLog.Error().Msg("Password for new vault is empty")
 			return ErrVaultPasswordEmpty
 		case 24:
-			errlog.Error().Msg("Gocryptfs could not create gocryptfs.conf")
+			errLog.Error().Msg("Gocryptfs could not create gocryptfs.conf")
 			return ErrVaultInitConfFailed
 		default:
-			errlog.Error().Msg("Unknown error when initializing new vault")
+			errLog.Error().Msg("Unknown error when initializing new vault")
 			return ErrUnknown.Reformat(errString)
 		}
 	}
@@ -97,23 +98,24 @@ func (s *ApiServer) GocryptfsChangeVaultPassword(path string, password string, n
 	if err := chPwProc.Run(); err != nil { // Failed to init vault, inspect error and respond to UI
 		rc := chPwProc.ProcessState.ExitCode()
 		errString := errorOutput.String()
-		errlog := logger.With().Err(err).
+		errLog := logger.With().
+			Err(err).
 			Int("RC", rc).
 			Str("vaultPath", path).
 			Str("stdErr", errString).
 			Logger()
 		switch rc {
 		case 12:
-			errlog.Error().Msg("Password incorrect")
+			errLog.Error().Msg("Password incorrect")
 			return ErrWrongPassword
 		case 23:
-			errlog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
+			errLog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
 			return ErrCantOpenVaultConf
 		case 24:
-			errlog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
+			errLog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
 			return ErrVaultUpdateConfFailed
 		default:
-			errlog.Error().Msg("Unknown error when changing password for vault")
+			errLog.Error().Msg("Unknown error when changing password for vault")
 			return ErrUnknown.Reformat(errString)
 		}
 	}
@@ -155,7 +157,8 @@ func (s *ApiServer) GocryptfsShowVaultMasterkey(path string, password string) (s
 		rc := xrayProc.ProcessState.ExitCode()
 		errString := errorOutput.String()
 		outString := stdOutput.String()
-		errLog := logger.With().Err(err).
+		errLog := logger.With().
+			Err(err).
 			Int("RC", rc).
 			Str("vaultPath", path).
 			Str("stdErr", errString).
@@ -210,23 +213,24 @@ func (s *ApiServer) GocryptfsResetVaultPassword(path string, masterkey string, n
 	if err := chPwProc.Run(); err != nil {
 		rc := chPwProc.ProcessState.ExitCode()
 		errString := errorOutput.String()
-		errlog := logger.With().Err(err).
+		errLog := logger.With().
+			Err(err).
 			Int("RC", rc).
 			Str("vaultPath", path).
 			Str("stdErr", errString).
 			Logger()
 		switch rc {
 		case 12:
-			errlog.Error().Msg("Password incorrect")
+			errLog.Error().Msg("Password incorrect")
 			return ErrWrongPassword
 		case 23:
-			errlog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
+			errLog.Error().Msg("Gocryptfs could not open gocryptfs.conf for reading")
 			return ErrCantOpenVaultConf
 		case 24:
-			errlog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
+			errLog.Error().Msg("Gocryptfs could not write the updated gocryptfs.conf")
 			return ErrVaultUpdateConfFailed
 		default:
-			errlog.Error().Msg("Unknown error when recovering password for vault")
+			errLog.Error().Msg("Unknown error when recovering password for vault")
 			return ErrUnknown.Reformat(errString)
 		}
 	}

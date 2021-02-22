@@ -36,6 +36,7 @@ func init() {
 		}
 	}
 	zlog.Logger = zlog.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: timeFormat})
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 	migrateLegacyDirectories()
 }

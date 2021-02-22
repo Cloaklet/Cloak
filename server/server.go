@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/xattr"
 	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -826,7 +827,8 @@ func (s *ApiServer) GetOptions(c echo.Context) error {
 			"gitCommit": version.GitCommit,
 		},
 		"options": echo.Map{
-			"locale": i18n.GetLocalizer().GetCurrentLocale(),
+			"locale":   i18n.GetLocalizer().GetCurrentLocale(),
+			"loglevel": strings.ToUpper(zlog.Logger.GetLevel().String()),
 		},
 	})
 }
@@ -835,17 +837,29 @@ func (s *ApiServer) GetOptions(c echo.Context) error {
 // Currently the only available option is `locale`.
 func (s *ApiServer) SetOptions(c echo.Context) error {
 	var appOption struct {
-		Locale string `json:"locale"`
+		Locale   string `json:"locale"`
+		LogLevel string `json:"loglevel"`
 	}
 	if err := c.Bind(&appOption); err != nil {
 		return ErrMalformedInput
 	}
 
 	translator := i18n.GetLocalizer()
-	if appOption.Locale != translator.GetCurrentLocale() {
+	if appOption.Locale != "" && appOption.Locale != translator.GetCurrentLocale() {
 		if err := translator.SetLocale(appOption.Locale); err != nil {
 			return ErrMalformedInput
 		}
+	}
+
+	if appOption.LogLevel != "" && appOption.LogLevel != zerolog.GlobalLevel().String() {
+		level, err := zerolog.ParseLevel(strings.ToLower(appOption.LogLevel))
+		if err != nil {
+			logger.Debug().Err(err).Interface("appOption", appOption).Send()
+			return ErrMalformedInput
+		}
+		zerolog.SetGlobalLevel(level)
+		logger.Debug().Interface("logger.Level", logger.GetLevel()).Send()
+		logger.Debug().Interface("global.Level", zerolog.GlobalLevel()).Send()
 	}
 	return ErrOk
 }

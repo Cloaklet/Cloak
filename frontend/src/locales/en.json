@@ -12,6 +12,9 @@
     "lang": {
       "label": "Language"
     },
+    "loglevel": {
+      "label": "Log level"
+    },
     "title": "Options"
   },
   "errors": {

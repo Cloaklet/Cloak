@@ -12,6 +12,9 @@
     "lang": {
       "label": "语言"
     },
+    "loglevel": {
+      "label": "日志级别"
+    },
     "title": "选项"
   },
   "errors": {

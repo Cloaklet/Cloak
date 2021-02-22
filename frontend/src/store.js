@@ -11,7 +11,8 @@ export default new Vuex.Store({
             code: null,
             msg: '',
         },
-        version: {}
+        version: {},
+        options: {}
     },
     getters: {
         selectedVault: state =>  {
@@ -94,6 +95,11 @@ export default new Vuex.Store({
         },
         setVersion(state, payload) {
             state.version = {...payload}
+        },
+        setOptions(state, payload) {
+            for (const [k, v] of Object.entries(payload)) {
+                state.options[k] = v
+            }
         }
     },
     actions: {
@@ -206,7 +212,9 @@ export default new Vuex.Store({
                 api: 'options'
             }).then(({item}) => {
                 commit('setVersion', {...item.version})
-                return item.options || {locale: 'en'}
+                delete item.version
+                commit('setOptions', item.options)
+                return item.options || {locale: 'en', loglevel: 'INFO'}
             })
         },
         listSubPaths({dispatch}, {path}) {
@@ -216,12 +224,21 @@ export default new Vuex.Store({
                 data: {pwd: path}
             })
         },
-        setOptions({dispatch}, {locale}) {
+        setOptions({commit, dispatch}, payload) {
+            let data = {}
+            if (payload.locale) {
+                data.locale = payload.locale
+            }
+            if (payload.loglevel) {
+                data.loglevel = payload.loglevel
+            }
             return dispatch('requestApi', {
                 method: 'post',
                 api: 'options',
-                data: {locale: locale}
-            }).then(() => ({locale}))
+                data: data
+            }).then(() => {
+                commit('setOptions', {...data})
+            }).then(() => payload)
         }
     }
 })

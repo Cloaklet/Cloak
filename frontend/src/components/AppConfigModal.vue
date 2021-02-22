@@ -38,6 +38,25 @@
                   </select>
                 </div>
               </div>
+              <div class="form-group">
+                <div class="col-3">
+                  <label class="form-label" for="options-loglevel" v-t="'config.loglevel.label'"></label>
+                </div>
+                <div class="col-9">
+                  <select id="options-loglevel"
+                          class="form-select"
+                          :value="loglevel"
+                          @change="changeLogLevel">
+                    <option>TRACE</option>
+                    <option>DEBUG</option>
+                    <option>INFO</option>
+                    <option>WARN</option>
+                    <option>ERROR</option>
+                    <option>FATAL</option>
+                    <option>PANIC</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
           <div class="p-2 m-2" v-if="active === 'about'">
@@ -65,6 +84,9 @@ export default {
     },
     lang() {
       return this.$root.$i18n.locale
+    },
+    loglevel() {
+      return this.$store.state.options.loglevel
     }
   },
   data: function() {
@@ -81,6 +103,11 @@ export default {
         locale: event.target.value
       }).then(({locale}) => {
         this.$root.$i18n.locale = locale
+      })
+    },
+    changeLogLevel(event) {
+      this.$store.dispatch('setOptions', {
+        loglevel: event.target.value
       })
     }
   }
