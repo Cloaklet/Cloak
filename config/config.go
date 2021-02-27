@@ -28,6 +28,7 @@ type Configurator struct {
 	rw        sync.RWMutex
 }
 
+// Callback is a type of function that accepts a config value.
 type Callback func(v string) error
 
 var logger zerolog.Logger
@@ -36,6 +37,7 @@ func init() {
 	logger = extension.GetLogger("config")
 }
 
+// NewConfigurator creates a new Configurator instance.
 func NewConfigurator(iniPath string) (*Configurator, error) {
 	// Check parent directory of `iniPath`
 	iniDirPath := filepath.Dir(iniPath)
@@ -74,13 +76,17 @@ func NewConfigurator(iniPath string) (*Configurator, error) {
 	}, nil
 }
 
+// SetCallbacks sets multiple config key callbacks in batch.
 func (c *Configurator) SetCallbacks(cbs map[string]Callback) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 
-	c.callbacks = cbs
+	for k, fn := range cbs {
+		c.callbacks[k] = fn
+	}
 }
 
+// SetCallback sets a single config key callback.
 func (c *Configurator) SetCallback(keyPath string, cb Callback) {
 	c.rw.Lock()
 	defer c.rw.Unlock()
@@ -174,8 +180,6 @@ func (c *Configurator) loadSections(sectionPath string, sections []*ini.Section)
 	return data
 }
 
-//func (c *Configurator) SetLogger()
-
 func (c *Configurator) persistKey(key, value string) error {
 	if key == "" {
 		return fmt.Errorf("empty key not allowed")
@@ -204,6 +208,7 @@ func (c *Configurator) persistKey(key, value string) error {
 	return c.ini.SaveTo(c.filePath)
 }
 
+// Set sets a key-value pair.
 func (c *Configurator) Set(key, value string) error {
 	// Only update if value differs.
 	if cv, ok := c.data[key]; ok && cv == value {
@@ -231,13 +236,7 @@ func (c *Configurator) Set(key, value string) error {
 	return nil
 }
 
-// UnSet deletes given key from config.
-//func (c *Configurator) UnSet(key string) error {
-//	if _, ok := c.data[key]; ok {
-//		delete(c.data, key)
-//	}
-//}
-
+// Get gets value gor given key.
 func (c *Configurator) Get(key string) string {
 	c.rw.RLock()
 	defer c.rw.RUnlock()

@@ -286,6 +286,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 	}
 }
 
+// GocryptfsUnlockVault unlocks the vault identified by `vaultId` using given `password`.
 func (s *ApiServer) GocryptfsUnlockVault(vaultId int64, password string) error {
 	// Check current state
 	if _, ok := s.mountPoints[vaultId]; ok {
