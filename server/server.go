@@ -8,11 +8,6 @@ import (
 	"Cloak/version"
 	"context"
 	"database/sql"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"github.com/pkg/xattr"
-	"github.com/rakyll/statik/fs"
-	"github.com/rs/zerolog"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -26,6 +21,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/pkg/xattr"
+	"github.com/rakyll/statik/fs"
+	"github.com/rs/zerolog"
 )
 
 var logger zerolog.Logger
@@ -39,55 +40,20 @@ func init() {
 // - Controls and reacts to gocryptfs processes;
 // - Maintains the vault database;
 type ApiServer struct {
-	repo          *models.VaultRepo   // database repository
-	echo          *echo.Echo          // the actual HTTP server
-	cmd           string              // `gocryptfs` binary path
-	xrayCmd       string              // `gocryptfs-xray` binary path
-	fuseAvailable bool                // whether FUSE is available
-	processes     map[int64]*exec.Cmd // vaultID: process
-	mountPoints   map[int64]string    // vaultID: mountPoint
-	lock          sync.Mutex          // lock on `processes` and `mountPoints`
-}
-
-// Start starts the server
-func (s *ApiServer) Start(address string) error {
-	return s.echo.Start(address)
-}
-
-// Stop stops the server
-// All vaults will be locked before the server stops.
-func (s *ApiServer) Stop() error {
-	logger.Debug().Msg("Requested to stop API server")
-
-	// Lock internal maps
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	// Lock all unlocked vaults
-	for vaultId, mountPoint := range s.mountPoints {
-		logger.Debug().
-			Int64("vaultId", vaultId).
-			Str("mountPoint", mountPoint).
-			Msg("Locking vault")
-
-		// Stop corresponding gocryptfs process to lock this vault
-		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
-			logger.Error().Err(err).
-				Int64("vaultId", vaultId).
-				Str("mountPoint", mountPoint).
-				Msg("Failed to stop gocryptfs process with SIGINT")
-		}
-	}
-
-	// Shutdown the server
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
-	defer cancel()
-	return s.echo.Shutdown(ctx)
+	repo          *models.VaultRepo      // database repository
+	echo          *echo.Echo             // the actual HTTP server
+	cmd           string                 // `gocryptfs` binary path
+	xrayCmd       string                 // `gocryptfs-xray` binary path
+	fuseAvailable bool                   // whether FUSE is available
+	processes     map[int64]*exec.Cmd    // vaultID: process
+	mountPoints   map[int64]string       // vaultID: mountPoint
+	lock          sync.Mutex             // lock on `processes` and `mountPoints`
+	configCh      chan map[string]string // channel for notifying config change requests
 }
 
 // NewApiServer creates a new ApiServer instance
 // - repo passes in the vault repository to persist vault list data
-func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
+func NewApiServer(repo *models.VaultRepo, releaseMode bool, configCh chan map[string]string) *ApiServer {
 	// Create server
 	server := ApiServer{
 		repo:          repo,
@@ -95,6 +61,7 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 		fuseAvailable: extension.IsFuseAvailable(),
 		processes:     make(map[int64]*exec.Cmd),
 		mountPoints:   make(map[int64]string),
+		configCh:      configCh,
 	}
 
 	// Detect external runtime dependencies
@@ -193,6 +160,42 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool) *ApiServer {
 	// We use `rand` to generate random mountpoint name, so be sure to seed it upon start up
 	rand.Seed(time.Now().UTC().UnixNano())
 	return &server
+}
+
+// Start starts the server
+func (s *ApiServer) Start(address string) error {
+	return s.echo.Start(address)
+}
+
+// Stop stops the server
+// All vaults will be locked before the server stops.
+func (s *ApiServer) Stop() error {
+	logger.Debug().Msg("Requested to stop API server")
+
+	// Lock internal maps
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// Lock all unlocked vaults
+	for vaultId, mountPoint := range s.mountPoints {
+		logger.Debug().
+			Int64("vaultId", vaultId).
+			Str("mountPoint", mountPoint).
+			Msg("Locking vault")
+
+		// Stop corresponding gocryptfs process to lock this vault
+		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
+			logger.Error().Err(err).
+				Int64("vaultId", vaultId).
+				Str("mountPoint", mountPoint).
+				Msg("Failed to stop gocryptfs process with SIGINT")
+		}
+	}
+
+	// Shutdown the server
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
+	defer cancel()
+	return s.echo.Shutdown(ctx)
 }
 
 // VaultInfo represents a single vault along with its current state
@@ -851,22 +854,12 @@ func (s *ApiServer) SetOptions(c echo.Context) error {
 		return ErrMalformedInput
 	}
 
-	translator := i18n.GetLocalizer()
-	if appOption.Locale != "" && appOption.Locale != translator.GetCurrentLocale() {
-		if err := translator.SetLocale(appOption.Locale); err != nil {
-			return ErrMalformedInput
-		}
+	if appOption.Locale != "" && appOption.Locale != i18n.GetLocalizer().GetCurrentLocale() {
+		s.configCh <- map[string]string{"locale": appOption.Locale}
 	}
 
 	if appOption.LogLevel != "" && appOption.LogLevel != zerolog.GlobalLevel().String() {
-		level, err := zerolog.ParseLevel(strings.ToLower(appOption.LogLevel))
-		if err != nil {
-			logger.Debug().Err(err).Interface("appOption", appOption).Send()
-			return ErrMalformedInput
-		}
-		zerolog.SetGlobalLevel(level)
-		logger.Debug().Interface("logger.Level", logger.GetLevel()).Send()
-		logger.Debug().Interface("global.Level", zerolog.GlobalLevel()).Send()
+		s.configCh <- map[string]string{"loglevel": appOption.LogLevel}
 	}
 	return ErrOk
 }

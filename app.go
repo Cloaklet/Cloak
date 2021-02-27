@@ -1,19 +1,22 @@
 package main
 
 import (
+	"Cloak/config"
 	"Cloak/extension"
 	"Cloak/i18n"
 	"Cloak/icons"
 	"Cloak/models"
 	"Cloak/server"
 	"database/sql"
+	"path/filepath"
+	"strings"
+
+	"github.com/rs/zerolog"
+
 	"github.com/getlantern/systray"
 	"github.com/lopezator/migrator"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/browser"
-	"gopkg.in/ini.v1"
-	"os"
-	"path/filepath"
 )
 
 // A dumb debug logger for migrator
@@ -31,6 +34,8 @@ type App struct {
 	repo        *models.VaultRepo
 	db          *sql.DB
 	releaseMode bool
+	config      *config.Configurator
+	configCh    chan map[string]string
 }
 
 // migrate runs database migrations
@@ -50,33 +55,43 @@ func (a *App) migrate() {
 	}
 }
 
-// Options represents INI-based application settings
-type Options struct {
-	Locale string `ini:"locale"`
-}
-
 func (a *App) loadConfig() {
-	appOptions := new(Options)
-	if err := ini.MapTo(
-		appOptions, filepath.Join(a.configDir, "options.ini"),
-	); err != nil && !os.IsNotExist(err) {
-		logger.Error().Err(err).Msg("Failed to map app options from config file")
-		return
-	}
-	if appOptions.Locale == "" {
-		return
+	var err error
+	a.config, err = config.NewConfigurator(filepath.Join(a.configDir, "options.ini"))
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to initialize application configurator")
 	}
 
-	if err := i18n.GetLocalizer().SetLocale(appOptions.Locale); err != nil {
-		logger.Error().Err(err).
-			Str("locale", appOptions.Locale).
-			Msg("Failed to set locale loaded from config file")
-	}
+	a.config.SetCallbacks(map[string]config.Callback{
+		"locale": func(v string) error {
+			if err := i18n.GetLocalizer().SetLocale(v); err != nil {
+				logger.Error().Err(err).
+					Str("locale", v).
+					Msg("Failed to set locale loaded from config file")
+				return err
+			}
+			return nil
+		},
+		"loglevel": func(v string) error {
+			level, err := zerolog.ParseLevel(strings.ToLower(v))
+			if err != nil {
+				logger.Warn().Err(err).Str("loglevel", v).Msg("Failed to parse log level")
+				return err
+			}
+			zerolog.SetGlobalLevel(level)
+			logger.Debug().Interface("Level", level).Msg("Log level changed")
+			return nil
+		},
+	})
+	a.config.Load()
 }
 
 // NewApp constructs and returns a new App instance
 func NewApp() *App {
-	app := &App{releaseMode: extension.ReleaseMode == "true"}
+	app := &App{
+		releaseMode: extension.ReleaseMode == "true",
+		configCh:    make(chan map[string]string, 10), // TODO How big should the buffer be?
+	}
 
 	// Locate data directories
 	for dirName, dirPathFunc := range map[string]func() string{
@@ -109,7 +124,7 @@ func NewApp() *App {
 	// Load app config
 	app.loadConfig()
 
-	app.apiServer = server.NewApiServer(app.repo, app.releaseMode)
+	app.apiServer = server.NewApiServer(app.repo, app.releaseMode, app.configCh)
 
 	logger.Debug().Msg("App created")
 	return app
@@ -133,23 +148,19 @@ func (a *App) Start() {
 	go func() {
 		for {
 			select {
-			// Realtime i18n changing
+			// Someone requested to change config, so we should notify the configurator
+			case kv, ok := <-a.configCh:
+				if ok {
+					for k, v := range kv {
+						a.config.Set(k, v)
+					}
+				}
+			// Locale actually changed, so we're okay to load new localed strings from translator
 			case locale, ok := <-translator.Ch:
 				if ok {
 					logger.Debug().Str("locale", locale).Msg("Locale changed")
 					openMenu.SetTitle(translator.T("open"))
 					quitMenu.SetTitle(translator.T("quit"))
-
-					// Persistent locale to config file
-					appOptions := &Options{Locale: locale}
-					cfg := ini.Empty()
-					if err := cfg.ReflectFrom(appOptions); err != nil {
-						logger.Error().Err(err).Msg("Failed to update app options")
-						continue
-					}
-					if err := cfg.SaveTo(filepath.Join(a.configDir, "options.ini")); err != nil {
-						logger.Error().Err(err).Msg("Failed to save app options to config file")
-					}
 				}
 			// Menu item events
 			case <-quitMenu.ClickedCh:
