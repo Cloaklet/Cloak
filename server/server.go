@@ -242,212 +242,9 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 
 	switch form.Op {
 	case "unlock":
-		// Check current state
-		if _, ok := s.mountPoints[vaultId]; ok {
-			return ErrVaultAlreadyUnlocked
-		}
-
-		// Lock internal maps
-		s.lock.Lock()
-		defer s.lock.Unlock()
-		// Locate vault in repository
-		vault, err := s.repo.Get(vaultId, nil)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				return ErrVaultNotExist
-			}
+		if err := s.GocryptfsUnlockVault(vaultId, form.Password); err != nil {
 			return err
 		}
-		// Locate a mountpoint for this vault
-		if strings.TrimSpace(vault.MountPoint) == "" {
-			var mountPointBase string
-			if runtime.GOOS == "darwin" {
-				mountPointBase = "/Volumes"
-			} else {
-				mountPointBase = os.TempDir()
-			}
-			vault.MountPoint = filepath.Join(mountPointBase, strconv.FormatInt(int64(rand.Int31()), 16))
-		}
-		// OSXFUSE will create mountpoint for us if it's located in `/Volumes`,
-		// but for Linux we'll have to do the mkdir ourselves.
-		shouldRemoveMountpoint := false
-		if runtime.GOOS != "darwin" {
-			if err := os.MkdirAll(vault.MountPoint, 0700); err != nil {
-				logger.Error().Err(err).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Failed to create mountpoint directory")
-				return ErrMountpointMkdirFailed
-			}
-			shouldRemoveMountpoint = true
-		}
-		// Start a gocryptfs process to unlock this vault
-		args := []string{"-fg"}
-		// Readonly mode
-		if vault.ReadOnly {
-			args = append(args, "-ro")
-			logger.Debug().
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Bool("readOnly", vault.ReadOnly).
-				Msg("Vault is set to mount Read-Only")
-		}
-		args = append(args, "--", vault.Path, vault.MountPoint)
-		s.processes[vaultId] = exec.Command(s.cmd, args...)
-		s.mountPoints[vaultId] = vault.MountPoint
-
-		// Password is piped through STDIN
-		stdIn, err := s.processes[vaultId].StdinPipe()
-		if err != nil {
-			logger.Error().Err(err).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Failed to create STDIN pipe")
-			defer delete(s.processes, vaultId)
-			defer delete(s.mountPoints, vaultId)
-			return err
-		}
-
-		rcPipe := make(chan int)
-
-		go func() {
-			defer stdIn.Close()
-			if _, err := io.WriteString(stdIn, form.Password); err != nil {
-				logger.Error().Err(err).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Failed to pipe vault password to gocryptfs")
-			}
-		}()
-		if err := s.processes[vaultId].Start(); err != nil {
-			logger.Error().Err(err).
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Str("gocryptfs", s.cmd).
-				Msg("Failed to start gocryptfs process")
-
-			// Cleanup immediately
-			defer delete(s.processes, vaultId)
-			defer delete(s.mountPoints, vaultId)
-			defer close(rcPipe)
-
-			return err
-		}
-
-		// Need to wait for this process to exit, otherwise it becomes zombie after exiting.
-		go func() {
-			proc := s.processes[vaultId]
-			if err := proc.Wait(); err != nil {
-				rc := proc.ProcessState.ExitCode()
-				switch rc {
-				case 10, 12, 23: // These are known errors meant to be reported directly to the UI
-					break
-				case 15: // gocryptfs interrupted by SIGINT, a.k.a. we locked this vault
-					logger.Info().
-						Int("RC", rc).
-						Int64("vaultId", vaultId).
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", vault.MountPoint).
-						Msg("Vault locked")
-					break
-				default:
-					logger.Error().Err(err).
-						Int("RC", rc).
-						Int64("vaultId", vaultId).
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", vault.MountPoint).
-						Msg("Gocryptfs exited unexpectedly")
-				}
-				rcPipe <- rc
-			} else {
-				logger.Debug().
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
-				rcPipe <- 0
-			}
-
-			// Cleanup
-			s.lock.Lock()
-			defer s.lock.Unlock()
-			defer delete(s.processes, vaultId)
-			defer delete(s.mountPoints, vaultId)
-			defer close(rcPipe)
-
-			// Remove mountpoint directory if we created it
-			if shouldRemoveMountpoint {
-				if err := os.Remove(vault.MountPoint); err != nil {
-					logger.Error().Err(err).
-						Int64("vaultId", vaultId).
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", vault.MountPoint).
-						Msg("Failed to remove mountpoint directory")
-				}
-			}
-		}()
-
-		// Wait for a little time, then check if gocryptfs process is alive
-		// If it exited, there's something wrong, respond to the UI
-		timer := time.NewTimer(time.Second)
-		select {
-		case rc := <-rcPipe:
-			switch rc {
-			case 10: // Mountpoint not empty
-				logger.Error().Err(err).
-					Int("RC", rc).
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Mountpoint not empty")
-				return ErrMountpointNotEmpty.WrapState("locked")
-			case 12: // Incorrect password
-				logger.Error().Err(err).
-					Int("RC", rc).
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Vault password incorrect")
-				return ErrWrongPassword.WrapState("locked")
-			case 23: // gocryptfs.conf IO error
-				logger.Error().Err(err).
-					Int("RC", rc).
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Gocryptfs cannot open gocryptfs.conf")
-				return ErrCantOpenVaultConf.WrapState("locked")
-			default:
-				logger.Error().Err(err).
-					Int("RC", rc).
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Gocryptfs exited unexpectedly")
-				return ErrUnknown.Reformat(rc).WrapState("locked")
-			}
-		case <-timer.C:
-			logger.Debug().
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Vault unlocked")
-			// Read from rcPipe, otherwise the `Wait` goroutine will block after gocryptfs exited
-			go func() {
-				<-rcPipe
-			}()
-		}
-
-		if vault.AutoReveal {
-			logger.Debug().
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Bool("autoReveal", vault.AutoReveal).
-				Msg("Auto revealing mountpoint")
-			go extension.OpenPath(vault.MountPoint)
-		}
-		// Respond
 		return ErrOk.WrapState("unlocked")
 	case "lock":
 		// Check current state
@@ -484,6 +281,217 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 	default:
 		return ErrUnsupportedOperation
 	}
+}
+
+func (s *ApiServer) GocryptfsUnlockVault(vaultId int64, password string) error {
+	// Check current state
+	if _, ok := s.mountPoints[vaultId]; ok {
+		return ErrVaultAlreadyUnlocked
+	}
+
+	// Lock internal maps
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	// Locate vault in repository
+	vault, err := s.repo.Get(vaultId, nil)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ErrVaultNotExist
+		}
+		return err
+	}
+	// Locate a mountpoint for this vault
+	if strings.TrimSpace(vault.MountPoint) == "" {
+		var mountPointBase string
+		if runtime.GOOS == "darwin" {
+			mountPointBase = "/Volumes"
+		} else {
+			mountPointBase = os.TempDir()
+		}
+		vault.MountPoint = filepath.Join(mountPointBase, strconv.FormatInt(int64(rand.Int31()), 16))
+	}
+	// OSXFUSE will create mountpoint for us if it's located in `/Volumes`,
+	// but for Linux we'll have to do the mkdir ourselves.
+	shouldRemoveMountpoint := false
+	if runtime.GOOS != "darwin" {
+		if err := os.MkdirAll(vault.MountPoint, 0700); err != nil {
+			logger.Error().Err(err).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Failed to create mountpoint directory")
+			return ErrMountpointMkdirFailed
+		}
+		shouldRemoveMountpoint = true
+	}
+	// Start a gocryptfs process to unlock this vault
+	args := []string{"-fg"}
+	// Readonly mode
+	if vault.ReadOnly {
+		args = append(args, "-ro")
+		logger.Debug().
+			Str("vaultPath", vault.Path).
+			Str("mountPoint", vault.MountPoint).
+			Bool("readOnly", vault.ReadOnly).
+			Msg("Vault is set to mount Read-Only")
+	}
+	args = append(args, "--", vault.Path, vault.MountPoint)
+	s.processes[vaultId] = exec.Command(s.cmd, args...)
+	s.mountPoints[vaultId] = vault.MountPoint
+
+	// Password is piped through STDIN
+	stdIn, err := s.processes[vaultId].StdinPipe()
+	if err != nil {
+		logger.Error().Err(err).
+			Str("vaultPath", vault.Path).
+			Str("mountPoint", vault.MountPoint).
+			Msg("Failed to create STDIN pipe")
+		defer delete(s.processes, vaultId)
+		defer delete(s.mountPoints, vaultId)
+		return err
+	}
+
+	rcPipe := make(chan int)
+
+	go func() {
+		defer stdIn.Close()
+		if _, err := io.WriteString(stdIn, password); err != nil {
+			logger.Error().Err(err).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Failed to pipe vault password to gocryptfs")
+		}
+	}()
+	if err := s.processes[vaultId].Start(); err != nil {
+		logger.Error().Err(err).
+			Int64("vaultId", vaultId).
+			Str("vaultPath", vault.Path).
+			Str("mountPoint", vault.MountPoint).
+			Str("gocryptfs", s.cmd).
+			Msg("Failed to start gocryptfs process")
+
+		// Cleanup immediately
+		defer delete(s.processes, vaultId)
+		defer delete(s.mountPoints, vaultId)
+		defer close(rcPipe)
+
+		return err
+	}
+
+	// Need to wait for this process to exit, otherwise it becomes zombie after exiting.
+	go func() {
+		proc := s.processes[vaultId]
+		if err := proc.Wait(); err != nil {
+			rc := proc.ProcessState.ExitCode()
+			switch rc {
+			case 10, 12, 23: // These are known errors meant to be reported directly to the UI
+				break
+			case 15: // gocryptfs interrupted by SIGINT, a.k.a. we locked this vault
+				logger.Info().
+					Int("RC", rc).
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", vault.MountPoint).
+					Msg("Vault locked")
+				break
+			default:
+				logger.Error().Err(err).
+					Int("RC", rc).
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", vault.MountPoint).
+					Msg("Gocryptfs exited unexpectedly")
+			}
+			rcPipe <- rc
+		} else {
+			logger.Debug().
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
+			rcPipe <- 0
+		}
+
+		// Cleanup
+		s.lock.Lock()
+		defer s.lock.Unlock()
+		defer delete(s.processes, vaultId)
+		defer delete(s.mountPoints, vaultId)
+		defer close(rcPipe)
+
+		// Remove mountpoint directory if we created it
+		if shouldRemoveMountpoint {
+			if err := os.Remove(vault.MountPoint); err != nil {
+				logger.Error().Err(err).
+					Int64("vaultId", vaultId).
+					Str("vaultPath", vault.Path).
+					Str("mountPoint", vault.MountPoint).
+					Msg("Failed to remove mountpoint directory")
+			}
+		}
+	}()
+
+	// Wait for a little time, then check if gocryptfs process is alive
+	// If it exited, there's something wrong, respond to the UI
+	timer := time.NewTimer(time.Second)
+	select {
+	case rc := <-rcPipe:
+		switch rc {
+		case 10: // Mountpoint not empty
+			logger.Error().Err(err).
+				Int("RC", rc).
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Mountpoint not empty")
+			return ErrMountpointNotEmpty.WrapState("locked")
+		case 12: // Incorrect password
+			logger.Error().Err(err).
+				Int("RC", rc).
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Vault password incorrect")
+			return ErrWrongPassword.WrapState("locked")
+		case 23: // gocryptfs.conf IO error
+			logger.Error().Err(err).
+				Int("RC", rc).
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Gocryptfs cannot open gocryptfs.conf")
+			return ErrCantOpenVaultConf.WrapState("locked")
+		default:
+			logger.Error().Err(err).
+				Int("RC", rc).
+				Int64("vaultId", vaultId).
+				Str("vaultPath", vault.Path).
+				Str("mountPoint", vault.MountPoint).
+				Msg("Gocryptfs exited unexpectedly")
+			return ErrUnknown.Reformat(rc).WrapState("locked")
+		}
+	case <-timer.C:
+		logger.Debug().
+			Int64("vaultId", vaultId).
+			Str("vaultPath", vault.Path).
+			Str("mountPoint", vault.MountPoint).
+			Msg("Vault unlocked")
+		// Read from rcPipe, otherwise the `Wait` goroutine will block after gocryptfs exited
+		go func() {
+			<-rcPipe
+		}()
+	}
+
+	if vault.AutoReveal {
+		logger.Debug().
+			Str("vaultPath", vault.Path).
+			Str("mountPoint", vault.MountPoint).
+			Bool("autoReveal", vault.AutoReveal).
+			Msg("Auto revealing mountpoint")
+		go extension.OpenPath(vault.MountPoint)
+	}
+
+	return nil
 }
 
 // UpdateVaultOptions updates options for given vault
