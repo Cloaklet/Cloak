@@ -12,14 +12,7 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-/**
-Configurator is a type which allows setting Key-value config pairs and callbacks that reacts to them.
-Usage:
-  - Create a new instance: NewConfigurator(iniPath)
-  - Set config key paths and callbacks: c.SetCallbacks(map[string]func)
-  - Load configuration: c.Load() this invokes each linked callback.
-  - Change config value: c.Set(key, value) this persists to disk and invokes linked callback.
-*/
+// Configurator is a type which allows setting Key-value config pairs and callbacks that reacts to them.
 type Configurator struct {
 	callbacks map[string]Callback
 	data      map[string]string
