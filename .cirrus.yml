@@ -37,4 +37,3 @@ task_build_app:
   depends_on:
     - go_test
     - build_frontend
-
