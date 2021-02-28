@@ -56,6 +56,10 @@ jobs:
       - name: Build app bundle
         run: go run build.go build
 
+      - name: Get Tag Version
+        id: get_tag_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+
       - name: Upload macOS app bundle
         uses: actions/upload-release-asset@v1
         env:
@@ -73,7 +77,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.create-github-release.outputs.upload_url }}
-          asset_path: ./Cloak-${{ github.ref }}-x86_64.AppImage
-          asset_name: Cloak-${{ github.ref }}-x86_64.AppImage
+          asset_path: ./Cloak-${{ steps.get_tag_version.outputs.VERSION }}-x86_64.AppImage
+          asset_name: Cloak-${{ steps.get_tag_version.outputs.VERSION }}-x86_64.AppImage
           asset_content_type: application/octet-stream
         if: matrix.os == 'ubuntu-latest'
