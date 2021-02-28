@@ -151,7 +151,7 @@ func EnsureDirectoryExists(path string) (string, error) {
 		if !os.IsNotExist(err) {
 			return "", err
 		}
-		if err = os.Mkdir(path, 0750); err != nil {
+		if err = os.MkdirAll(path, 0750); err != nil {
 			return "", err
 		}
 	}
