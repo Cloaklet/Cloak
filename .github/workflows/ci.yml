@@ -28,3 +28,6 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Update GoReport card
+      run: curl -d "repo=github.com/Cloaklet/Cloak" https://goreportcard.com/checks
