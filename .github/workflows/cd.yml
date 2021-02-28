@@ -1,0 +1,75 @@
+name: CD
+
+on:
+  push:
+    branches: [ "!*" ]
+    tags: [ "*" ]
+
+jobs:
+  create-github-release:
+    name: "Create Github Release"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+          draft: true
+          prerelease: false
+
+  build:
+    name: "Build app"
+    needs: create-github-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
+
+      - name: Install dependencies for Ubuntu
+        run: sudo apt install -y libappindicator3-dev gcc libgtk-3-dev libxapp-dev
+        if: matrix.os == 'ubuntu-latest'
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Set up Nodejs
+        uses: actions/setup-node@v2
+        with:
+          node-version: "12"
+
+      - name: Install Nodejs dependencies
+        run: cd frontend && npm ci && cd ..
+
+      - name: Build app bundle
+        run: go run build.go build
+
+      - name: Upload macOS app bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-github-release.outputs.upload_url }}
+          asset_path: ./Cloak.app.zip
+          asset_name: Cloak.app.zip
+        if: matrix.os == 'macOS-latest'
+
+      - name: Upload Linux AppImage bundle
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-github-release.outputs.upload_url }}
+          asset_path: ./Cloak-${{ github.ref }}-x86_64.AppImage
+          asset_name: Cloak-${{ github.ref }}-x86_64.AppImage
+        if: matrix.os == 'ubuntu-latest'
