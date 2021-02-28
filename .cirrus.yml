@@ -1,20 +1,33 @@
 container:
   image: golang:1.14
 
-task:
-  go_test:
-    script: go test -v ./...
-  build_frontend:
-    script: cd frontend && npm install && cd ..
-    depends_on:
-      - go_test
-  build_app:
-    script: go run build.go build
-    depends_on:
-      - go_test
-      - build_frontend
-  update_goreportcard:
-    only_if: "changesInclude('**.{go}')"
-    script: curl -d "repo=github.com/Cloaklet/Cloak" https://goreportcard.com/checks
-    depends_on:
-      - go_test
+test_task:
+  name: go_test
+  modules_cache:
+    fingerprint_script: cat go.sum
+    folder: $GOPATH/pkg/mod
+  test_script: go test -v ./...
+
+build_frontend_task:
+  name: build_frontend
+  modules_cache:
+    fingerprint_script: cat package-lock.json
+    populate_script: npm ci
+  build_script: npm run build
+  depends_on:
+    - go_test
+
+update_go_reportcard_task:
+  name: update_goreportcard
+  script: curl -d "repo=github.com/Cloaklet/Cloak" https://goreportcard.com/checks
+  only_if: "changesInclude('**.{go}')"
+  depends_on:
+    - go_test
+
+build_app_task:
+  name: build_app
+  script: go run build.go build
+  depends_on:
+    - go_test
+    - build_frontend
+
