@@ -1,16 +1,17 @@
-container:
-  image: golang:1.14
-
-test_task:
+task_go_test:
   name: go_test
+  container:
+    dockerfile: .ci/cirrusci.Dockerfile
   modules_cache:
     fingerprint_script: cat go.sum
     folder: $GOPATH/pkg/mod
     populate_script: go mod download
   test_script: go test -v ./...
 
-build_frontend_task:
+task_build_frontend:
   name: build_frontend
+  container:
+    image: node:12
   modules_cache:
     fingerprint_script: cat package-lock.json
     folder: node_modules
@@ -19,16 +20,20 @@ build_frontend_task:
   depends_on:
     - go_test
 
-update_go_reportcard_task:
+task_update_go_reportcard:
   name: update_goreportcard
+  container:
+    dockerfile: .ci/cirrusci.Dockerfile
   script: curl -d "repo=github.com/Cloaklet/Cloak" https://goreportcard.com/checks
   only_if: "changesInclude('**.{go}')"
   depends_on:
     - go_test
 
-build_app_task:
+task_build_app:
   name: build_app
   script: go run build.go build
+  container:
+    dockerfile: .ci/cirrusci.Dockerfile
   depends_on:
     - go_test
     - build_frontend
