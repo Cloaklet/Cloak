@@ -3,8 +3,8 @@
 <p align="center">A simple GUI for gocryptfs.</p>
 
 <p align="center">
-  <a href="https://travis-ci.com/Cloaklet/Cloak">
-    <img src="https://img.shields.io/cirrus/github/Cloaklet/Cloak/master?style=for-the-badge" alt="Build Status">
+  <a href="https://github.com/Cloaklet/Cloak/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/workflow/status/Cloaklet/Cloak/CI?style=for-the-badge" alt="Build Status">
   </a>
   <a href="https://goreportcard.com/report/github.com/Cloaklet/Cloak">
     <img src="https://goreportcard.com/badge/github.com/Cloaklet/Cloak?style=for-the-badge" alt="Go Report Card">
