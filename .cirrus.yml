@@ -1,0 +1,20 @@
+container:
+  image: golang:1.14
+
+task:
+  go_test:
+    script: go test -v ./...
+  build_frontend:
+    script: cd frontend && npm install && cd ..
+    depends_on:
+      - go_test
+  build_app:
+    script: go run build.go build
+    depends_on:
+      - go_test
+      - build_frontend
+  update_goreportcard:
+    only_if: "changesInclude('**.{go}')"
+    script: curl -d "repo=github.com/Cloaklet/Cloak" https://goreportcard.com/checks
+    depends_on:
+      - go_test

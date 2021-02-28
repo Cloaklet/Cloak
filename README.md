@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://travis-ci.com/Cloaklet/Cloak">
-    <img src="https://img.shields.io/travis/com/Cloaklet/Cloak?style=for-the-badge" alt="Build Status">
+    <img src="https://img.shields.io/cirrus/github/Cloaklet/Cloak/master?style=for-the-badge" alt="Build Status">
   </a>
   <a href="https://goreportcard.com/report/github.com/Cloaklet/Cloak">
     <img src="https://goreportcard.com/badge/github.com/Cloaklet/Cloak?style=for-the-badge" alt="Go Report Card">
