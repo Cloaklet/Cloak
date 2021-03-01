@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"github.com/magefile/mage/mg" // mg contains helpful utility functions, like Deps
 	"github.com/magefile/mage/sh"
+	"github.com/rs/zerolog"
+	zlog "github.com/rs/zerolog/log"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	"io"
@@ -32,6 +34,12 @@ const (
 	archKey
 )
 
+var logger zerolog.Logger
+
+func init() {
+	logger = zlog.Logger
+}
+
 func buildForTarget(c context.Context) (output string, err error) {
 	os.RemoveAll(`rsrc.syso`)
 
@@ -40,13 +48,26 @@ func buildForTarget(c context.Context) (output string, err error) {
 		"GOARCH": c.Value(archKey).(string),
 	}
 
-	// Read version string from version/VERSION
 	var versionString string
-	if version, err := ioutil.ReadFile(filepath.Join("version", "VERSION")); err != nil {
-		return "", err
+
+	// Read version string from git
+	gitOutput, err := sh.Output("git", "describe", "--tags", "--exact-match")
+	// We're at an exact tag
+	if err == nil {
+		versionString = strings.TrimSpace(gitOutput)
+		logger.Debug().Str("version", versionString).Msg("Determined exact Git tag")
 	} else {
-		versionString = string(version)
+		// We've got commits after a tag
+		gitOutput, err = sh.Output("git", "describe", "--tags")
+		// Unable to locate git tag
+		if err != nil {
+			logger.Error().Err(err).Msg("Failed to determine version via Git")
+			return "", err
+		}
+		versionString = strings.TrimSpace(gitOutput)
+		logger.Warn().Str("version", versionString).Msg("Not at an exact Git tag")
 	}
+
 	// Get commit ID from git
 	commitString := "unknown"
 	if commit, err := sh.Output(`git`, `rev-parse`, `--short`, `HEAD`); err != nil {
@@ -161,31 +182,36 @@ func Build() error {
 	ctx = context.WithValue(ctx, archKey, runtime.GOARCH)
 	mg.SerialCtxDeps(ctx, Clean, InstallDeps, DownloadExternalTools, PackAssets)
 
-	fmt.Printf("Building for OS=%s ARCH=%s... ", runtime.GOOS, runtime.GOARCH)
+	logger.Debug().Str("OS", runtime.GOOS).Str("ARCH", runtime.GOARCH).Msg("Building...")
 	if output, err := buildForTarget(ctx); err != nil {
-		fmt.Print(output)
+		logger.Debug().Msg(output)
 		return err
 	} else {
-		fmt.Printf("Bundle created: %s\n", output)
+		logger.Debug().Str("file", output).Msg("Bundle created")
 		return nil
 	}
 }
 
 // PackAssets packs static files using `statik` tool
 func PackAssets(_ context.Context) error {
+	logger.Debug().Msg("Building frontend...")
 	npmBuild := exec.Command(`npm`, `run`, `build`)
 	npmBuild.Dir = "frontend"
 	output, err := npmBuild.CombinedOutput()
-	fmt.Printf("%s\n", output)
+	logger.Debug().Msg(string(output))
 	if err != nil {
+		logger.Error().Err(err).Msg("Failed to build frontend project")
 		return err
 	}
+	logger.Debug().Msg("Successfully built frontend project")
 
 	goPath, err := sh.Output(`go`, `env`, `GOPATH`)
 	if err != nil {
+		logger.Error().Err(err).Msg("Failed to determine GOPATH")
 		return err
 	}
 	if goPath == "" {
+		logger.Error().Msg("GOPATH is empty")
 		return fmt.Errorf("failed to get GOPATH")
 	}
 
@@ -197,29 +223,33 @@ func PackAssets(_ context.Context) error {
 func InstallDeps(_ context.Context) error {
 	goPath, err := sh.Output(`go`, `env`, `GOPATH`)
 	if err != nil {
+		logger.Error().Err(err).Msg("Failed to determine GOPATH")
 		return err
 	}
 	if goPath == "" {
+		logger.Error().Msg("GOPATH is empty")
 		return fmt.Errorf("failed to get GOPATH")
 	}
 
-	fmt.Println("Installing Deps...")
+	logger.Debug().Msg("Installing required tools")
 	for toolBinary, toolPkg := range map[string]string{
 		"statik": "github.com/rakyll/statik",
 	} {
-		if _, err := exec.LookPath(toolBinary); err == nil {
-			fmt.Printf("> %s found in PATH\n", toolBinary)
+		tLogger := logger.With().Str("tool", toolBinary).Logger()
+		if toolPath, err := exec.LookPath(toolBinary); err == nil {
+			tLogger.Debug().Str("path", toolPath).Msg("Tool found in PATH, skip installing")
 			continue
 		}
 
 		goPathBin := filepath.Join(goPath, "bin", toolBinary)
 		if info, err := os.Stat(goPathBin); err == nil && !info.IsDir() {
-			fmt.Printf("> %s found in GOPATH/bin: %s\n", toolBinary, goPathBin)
+			tLogger.Debug().Str("path", goPathBin).Msg("Tool found in GOPATH/bin, skip installing")
 			continue
 		}
 
-		fmt.Printf("> %s not found, install from %s\n", toolBinary, toolPkg)
+		tLogger.Debug().Str("pkg", toolPkg).Msg("Tool not found, installing now")
 		if err = sh.Run(`go`, `install`, toolPkg); err != nil {
+			tLogger.Error().Err(err).Str("pkg", toolPkg).Msg("Failed to install tool")
 			return err
 		}
 	}
@@ -229,7 +259,7 @@ func InstallDeps(_ context.Context) error {
 
 // Clean remove build artifacts from last build
 func Clean(c context.Context) error {
-	fmt.Println("Cleaning...")
+	logger.Debug().Msg("Cleaning...")
 	goOs := c.Value(osKey).(string)
 	switch goOs {
 	case "darwin":
@@ -251,7 +281,7 @@ func Clean(c context.Context) error {
 
 // downloadExecutable downloads given URL into an executable file named by `name` in current directory.
 func downloadExecutable(url string, name string) error {
-	fmt.Printf("  > Downloading %s from %s\n", name, url)
+	logger.Debug().Str("url", url).Str("binary", name).Msg("Downloading binary executable")
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -345,7 +375,7 @@ func PackErrorsIntoLocales() error {
 	}
 
 	for _, file := range localeFiles {
-		fmt.Printf("Processing locale file '%s': ", file.Name())
+		logger.Debug().Str("file", file.Name()).Msg("Processing locale file")
 		jsonBytes, err := ioutil.ReadFile(filepath.Join(localesDir, file.Name()))
 		if err != nil {
 			return err
@@ -368,7 +398,7 @@ func PackErrorsIntoLocales() error {
 				if json, err = sjson.Set(json, errorKey, errorString); err != nil {
 					return err
 				}
-				fmt.Printf("%d ", error.Code)
+				logger.Debug().Int("errorCode", error.Code).Send()
 			}
 		}
 		var jsonOut bytes.Buffer
@@ -378,7 +408,7 @@ func PackErrorsIntoLocales() error {
 		if err = ioutil.WriteFile(filepath.Join(localesDir, file.Name()), jsonOut.Bytes(), file.Mode()); err != nil {
 			return err
 		}
-		fmt.Printf("Done.\n")
+		logger.Debug().Msg("Done.")
 	}
 	return nil
 }
