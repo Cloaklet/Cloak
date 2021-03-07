@@ -487,12 +487,50 @@ func (s *ApiServer) GocryptfsUnlockVault(vaultId int64, password string) error {
 	}
 
 	if vault.AutoReveal {
+		go func() {
+			start := time.Now()
+			ticker := time.NewTicker(time.Millisecond * 100)
+			timeout := time.NewTimer(time.Second * 5)
+			defer ticker.Stop()
+			defer timeout.Stop()
+
+			for {
+				select {
+				case <-ticker.C:
+					info, err := os.Stat(vault.MountPoint)
+					if err == nil && info.IsDir() {
+						logger.Debug().
+							Str("vaultPath", vault.Path).
+							Str("mountPoint", vault.MountPoint).
+							Bool("autoReveal", vault.AutoReveal).
+							Dur("waited", time.Since(start)).
+							Msg("Auto revealing mountpoint")
+						extension.OpenPath(vault.MountPoint)
+						return
+					}
+					logger.Debug().
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", vault.MountPoint).
+						Bool("autoReveal", vault.AutoReveal).
+						Dur("waited", time.Since(start)).
+						Msg("Mountpoint not ready, still waiting")
+				case <-timeout.C:
+					logger.Warn().
+						Str("vaultPath", vault.Path).
+						Str("mountPoint", vault.MountPoint).
+						Bool("autoReveal", vault.AutoReveal).
+						Dur("waited", time.Since(start)).
+						Msg("Auto revealing timed out")
+					return
+				}
+			}
+		}()
+
 		logger.Debug().
 			Str("vaultPath", vault.Path).
 			Str("mountPoint", vault.MountPoint).
 			Bool("autoReveal", vault.AutoReveal).
-			Msg("Auto revealing mountpoint")
-		go extension.OpenPath(vault.MountPoint)
+			Msg("Waiting for mountpoint to appear before auto revealing")
 	}
 
 	return nil
