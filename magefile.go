@@ -314,8 +314,8 @@ func linuxArch(goArch string) string {
 
 // Download static build binary of gocryptfs
 func DownloadExternalTools(c context.Context) error {
-	cloakVersion := "0.0.1"
-	gocryptfsVersion := "1.8.0"
+	cloakVersion := "0.0.2"
+	gocryptfsVersion := "eaca820e"
 	goOs := c.Value(osKey).(string)
 
 	// Here's a list of external tools to be downloaded, they are going to be bundled
