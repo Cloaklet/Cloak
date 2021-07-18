@@ -264,6 +264,7 @@ func PackAssets(_ context.Context) error {
 
 	// Remove `server/dist/.gitkeep`
 	sh.Rm(filepath.Join("server", "dist", ".gitkeep"))
+	sh.Rm(filepath.Join("server", "dist", ".DS_Store"))
 	// Copy `frontend/dist` to `server/dist`
 	return CopyDir(filepath.Join("server", "dist"), filepath.Join("frontend", "dist"))
 }
