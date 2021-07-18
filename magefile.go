@@ -197,13 +197,15 @@ func CopyDir(dst, src string) error {
 			return err
 		}
 
-		fmt.Printf("copying %s\n", srcpath)
 		if srcpath == src {
 			return nil
 		}
 
+		if strings.HasPrefix(filepath.Base(srcpath), ".") {
+			return filepath.SkipDir
+		}
+
 		dstpath := filepath.Clean(strings.Replace(srcpath, src, dst, 1))
-		fmt.Printf("cp %s => %s\n", srcpath, dstpath)
 
 		if fi.IsDir() {
 			mkerr := os.Mkdir(dstpath, fi.Mode())
@@ -260,6 +262,8 @@ func PackAssets(_ context.Context) error {
 	}
 	logger.Debug().Msg("Successfully built frontend project")
 
+	// Remove `server/dist/.gitkeep`
+	sh.Rm(filepath.Join("server", "dist", ".gitkeep"))
 	// Copy `frontend/dist` to `server/dist`
 	return CopyDir(filepath.Join("server", "dist"), filepath.Join("frontend", "dist"))
 }
