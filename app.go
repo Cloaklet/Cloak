@@ -8,15 +8,15 @@ import (
 	"Cloak/models"
 	"Cloak/server"
 	"database/sql"
+	"github.com/getlantern/systray"
+	"github.com/pkg/browser"
 	"path/filepath"
 	"strings"
 
 	"github.com/rs/zerolog"
 
-	"github.com/getlantern/systray"
 	"github.com/lopezator/migrator"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/pkg/browser"
 )
 
 // A dumb debug logger for migrator
@@ -180,6 +180,5 @@ func (a *App) Start() {
 // Stop stops the app
 func (a *App) Stop() {
 	a.db.Close()
-	a.apiServer.Stop()
 	logger.Info().Msg("App stopped")
 }

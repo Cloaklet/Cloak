@@ -4,11 +4,10 @@ import (
 	"Cloak/extension"
 	"Cloak/i18n"
 	"Cloak/models"
-	_ "Cloak/statik" // (for release mode) frontend assets
 	"Cloak/version"
 	"context"
 	"database/sql"
-	"io"
+	"io/fs"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -19,13 +18,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/xattr"
-	"github.com/rakyll/statik/fs"
 	"github.com/rs/zerolog"
 )
 
@@ -40,15 +37,8 @@ func init() {
 // - Controls and reacts to gocryptfs processes;
 // - Maintains the vault database;
 type ApiServer struct {
-	repo          *models.VaultRepo      // database repository
-	echo          *echo.Echo             // the actual HTTP server
-	cmd           string                 // `gocryptfs` binary path
-	xrayCmd       string                 // `gocryptfs-xray` binary path
-	fuseAvailable bool                   // whether FUSE is available
-	processes     map[int64]*exec.Cmd    // vaultID: process
-	mountPoints   map[int64]string       // vaultID: mountPoint
-	lock          sync.Mutex             // lock on `processes` and `mountPoints`
-	configCh      chan map[string]string // channel for notifying config change requests
+	VaultManager
+	echo *echo.Echo // the actual HTTP server
 }
 
 // NewApiServer creates a new ApiServer instance
@@ -56,12 +46,14 @@ type ApiServer struct {
 func NewApiServer(repo *models.VaultRepo, releaseMode bool, configCh chan map[string]string) *ApiServer {
 	// Create server
 	server := ApiServer{
-		repo:          repo,
-		echo:          echo.New(),
-		fuseAvailable: extension.IsFuseAvailable(),
-		processes:     make(map[int64]*exec.Cmd),
-		mountPoints:   make(map[int64]string),
-		configCh:      configCh,
+		echo: echo.New(),
+		VaultManager: VaultManager{
+			repo:          repo,
+			fuseAvailable: extension.IsFuseAvailable(),
+			processes:     make(map[int64]*exec.Cmd),
+			mountPoints:   make(map[int64]string),
+			configCh:      configCh,
+		},
 	}
 
 	// Detect external runtime dependencies
@@ -90,11 +82,11 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool, configCh chan map[st
 		server.echo.Static("/", "./frontend/dist")
 	} else { // Load files from embedded FS when in release mode
 		logger.Debug().Msg("Running in RELEASE mode")
-		embedFs, err := fs.New()
+		embeddedFs, err := fs.Sub(frontend, "dist")
 		if err != nil {
-			logger.Fatal().Err(err).Msg("Failed to init FS from embedded assets")
+			logger.Fatal().Err(err).Msg("Failed to mount subdirectory of embedded FS to HTTP router")
 		}
-		server.echo.GET("/*", echo.WrapHandler(http.FileServer(embedFs)))
+		server.echo.GET("/*", echo.WrapHandler(http.FileServer(http.FS(embeddedFs))))
 	}
 
 	// Use a custom error handler to produce unified JSON responses.
@@ -183,7 +175,7 @@ func (s *ApiServer) Stop() error {
 			Str("mountPoint", mountPoint).
 			Msg("Locking vault")
 
-		// Stop corresponding gocryptfs process to lock this vault
+		// stop corresponding gocryptfs process to lock this vault
 		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
 			logger.Error().Err(err).
 				Int64("vaultId", vaultId).
@@ -258,7 +250,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		// Lock internal maps
 		s.lock.Lock()
 		defer s.lock.Unlock()
-		// Stop corresponding gocryptfs process to lock this vault
+		// stop corresponding gocryptfs process to lock this vault
 		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
 			return err
 		}
@@ -284,256 +276,6 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 	default:
 		return ErrUnsupportedOperation
 	}
-}
-
-// GocryptfsUnlockVault unlocks the vault identified by `vaultId` using given `password`.
-func (s *ApiServer) GocryptfsUnlockVault(vaultId int64, password string) error {
-	// Check current state
-	if _, ok := s.mountPoints[vaultId]; ok {
-		return ErrVaultAlreadyUnlocked
-	}
-
-	// Lock internal maps
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	// Locate vault in repository
-	vault, err := s.repo.Get(vaultId, nil)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return ErrVaultNotExist
-		}
-		return err
-	}
-	// Locate a mountpoint for this vault
-	if strings.TrimSpace(vault.MountPoint) == "" {
-		var mountPointBase string
-		if runtime.GOOS == "darwin" {
-			mountPointBase = "/Volumes"
-		} else {
-			mountPointBase = os.TempDir()
-		}
-		vault.MountPoint = filepath.Join(mountPointBase, strconv.FormatInt(int64(rand.Int31()), 16))
-	}
-	// OSXFUSE will create mountpoint for us if it's located in `/Volumes`,
-	// but for Linux we'll have to do the mkdir ourselves.
-	shouldRemoveMountpoint := false
-	if runtime.GOOS != "darwin" {
-		if err := os.MkdirAll(vault.MountPoint, 0700); err != nil {
-			logger.Error().Err(err).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Failed to create mountpoint directory")
-			return ErrMountpointMkdirFailed
-		}
-		shouldRemoveMountpoint = true
-	}
-	// Start a gocryptfs process to unlock this vault
-	args := []string{"-fg"}
-	// Readonly mode
-	if vault.ReadOnly {
-		args = append(args, "-ro")
-		logger.Debug().
-			Str("vaultPath", vault.Path).
-			Str("mountPoint", vault.MountPoint).
-			Bool("readOnly", vault.ReadOnly).
-			Msg("Vault is set to mount Read-Only")
-	}
-	args = append(args, "--", vault.Path, vault.MountPoint)
-	s.processes[vaultId] = exec.Command(s.cmd, args...)
-	s.mountPoints[vaultId] = vault.MountPoint
-
-	// Password is piped through STDIN
-	stdIn, err := s.processes[vaultId].StdinPipe()
-	if err != nil {
-		logger.Error().Err(err).
-			Str("vaultPath", vault.Path).
-			Str("mountPoint", vault.MountPoint).
-			Msg("Failed to create STDIN pipe")
-		defer delete(s.processes, vaultId)
-		defer delete(s.mountPoints, vaultId)
-		return err
-	}
-
-	rcPipe := make(chan int)
-
-	go func() {
-		defer stdIn.Close()
-		if _, err := io.WriteString(stdIn, password); err != nil {
-			logger.Error().Err(err).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Failed to pipe vault password to gocryptfs")
-		}
-	}()
-	if err := s.processes[vaultId].Start(); err != nil {
-		logger.Error().Err(err).
-			Int64("vaultId", vaultId).
-			Str("vaultPath", vault.Path).
-			Str("mountPoint", vault.MountPoint).
-			Str("gocryptfs", s.cmd).
-			Msg("Failed to start gocryptfs process")
-
-		// Cleanup immediately
-		defer delete(s.processes, vaultId)
-		defer delete(s.mountPoints, vaultId)
-		defer close(rcPipe)
-
-		return err
-	}
-
-	// Need to wait for this process to exit, otherwise it becomes zombie after exiting.
-	go func() {
-		proc := s.processes[vaultId]
-		if err := proc.Wait(); err != nil {
-			rc := proc.ProcessState.ExitCode()
-			switch rc {
-			case 10, 12, 23: // These are known errors meant to be reported directly to the UI
-				break
-			case 15: // gocryptfs interrupted by SIGINT, a.k.a. we locked this vault
-				logger.Info().
-					Int("RC", rc).
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Vault locked")
-				break
-			default:
-				logger.Error().Err(err).
-					Int("RC", rc).
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Gocryptfs exited unexpectedly")
-			}
-			rcPipe <- rc
-		} else {
-			logger.Debug().
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Gocryptfs exited without error, the mountpoint was probably unmounted manually")
-			rcPipe <- 0
-		}
-
-		// Cleanup
-		s.lock.Lock()
-		defer s.lock.Unlock()
-		defer delete(s.processes, vaultId)
-		defer delete(s.mountPoints, vaultId)
-		defer close(rcPipe)
-
-		// Remove mountpoint directory if we created it
-		if shouldRemoveMountpoint {
-			if err := os.Remove(vault.MountPoint); err != nil {
-				logger.Error().Err(err).
-					Int64("vaultId", vaultId).
-					Str("vaultPath", vault.Path).
-					Str("mountPoint", vault.MountPoint).
-					Msg("Failed to remove mountpoint directory")
-			}
-		}
-	}()
-
-	// Wait for a little time, then check if gocryptfs process is alive
-	// If it exited, there's something wrong, respond to the UI
-	timer := time.NewTimer(time.Second)
-	select {
-	case rc := <-rcPipe:
-		switch rc {
-		case 10: // Mountpoint not empty
-			logger.Error().Err(err).
-				Int("RC", rc).
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Mountpoint not empty")
-			return ErrMountpointNotEmpty.WrapState("locked")
-		case 12: // Incorrect password
-			logger.Error().Err(err).
-				Int("RC", rc).
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Vault password incorrect")
-			return ErrWrongPassword.WrapState("locked")
-		case 23: // gocryptfs.conf IO error
-			logger.Error().Err(err).
-				Int("RC", rc).
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Gocryptfs cannot open gocryptfs.conf")
-			return ErrCantOpenVaultConf.WrapState("locked")
-		default:
-			logger.Error().Err(err).
-				Int("RC", rc).
-				Int64("vaultId", vaultId).
-				Str("vaultPath", vault.Path).
-				Str("mountPoint", vault.MountPoint).
-				Msg("Gocryptfs exited unexpectedly")
-			return ErrUnknown.Reformat(rc).WrapState("locked")
-		}
-	case <-timer.C:
-		logger.Debug().
-			Int64("vaultId", vaultId).
-			Str("vaultPath", vault.Path).
-			Str("mountPoint", vault.MountPoint).
-			Msg("Vault unlocked")
-		// Read from rcPipe, otherwise the `Wait` goroutine will block after gocryptfs exited
-		go func() {
-			<-rcPipe
-		}()
-	}
-
-	if vault.AutoReveal {
-		go func() {
-			start := time.Now()
-			ticker := time.NewTicker(time.Millisecond * 100)
-			timeout := time.NewTimer(time.Second * 5)
-			defer ticker.Stop()
-			defer timeout.Stop()
-
-			for {
-				select {
-				case <-ticker.C:
-					info, err := os.Stat(vault.MountPoint)
-					if err == nil && info.IsDir() {
-						logger.Debug().
-							Str("vaultPath", vault.Path).
-							Str("mountPoint", vault.MountPoint).
-							Bool("autoReveal", vault.AutoReveal).
-							Dur("waited", time.Since(start)).
-							Msg("Auto revealing mountpoint")
-						extension.OpenPath(vault.MountPoint)
-						return
-					}
-					logger.Debug().
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", vault.MountPoint).
-						Bool("autoReveal", vault.AutoReveal).
-						Dur("waited", time.Since(start)).
-						Msg("Mountpoint not ready, still waiting")
-				case <-timeout.C:
-					logger.Warn().
-						Str("vaultPath", vault.Path).
-						Str("mountPoint", vault.MountPoint).
-						Bool("autoReveal", vault.AutoReveal).
-						Dur("waited", time.Since(start)).
-						Msg("Auto revealing timed out")
-					return
-				}
-			}
-		}()
-
-		logger.Debug().
-			Str("vaultPath", vault.Path).
-			Str("mountPoint", vault.MountPoint).
-			Bool("autoReveal", vault.AutoReveal).
-			Msg("Waiting for mountpoint to appear before auto revealing")
-	}
-
-	return nil
 }
 
 // UpdateVaultOptions updates options for given vault
@@ -651,7 +393,7 @@ func (s *ApiServer) RemoveVault(c echo.Context) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	// Lock vault if necessary
-	// Stop corresponding gocryptfs process to lock this vault
+	// stop corresponding gocryptfs process to lock this vault
 	if _, ok := s.mountPoints[vaultId]; ok {
 		if err := s.processes[vaultId].Process.Signal(os.Interrupt); err != nil {
 			return err

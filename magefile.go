@@ -41,8 +41,6 @@ func init() {
 }
 
 func buildForTarget(c context.Context) (output string, err error) {
-	os.RemoveAll(`rsrc.syso`)
-
 	env := map[string]string{
 		"GOOS":   c.Value(osKey).(string),
 		"GOARCH": c.Value(archKey).(string),
@@ -192,7 +190,64 @@ func Build() error {
 	}
 }
 
-// PackAssets packs static files using `statik` tool
+// Ref: https://github.com/magefile/mage/pull/220/files#diff-cad56499684fcd6aa40dccc829a443b9d4895a7cf898f211cf910b5af9d7e15aR38
+func CopyDir(dst, src string) error {
+	fn := func(srcpath string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("copying %s\n", srcpath)
+		if srcpath == src {
+			return nil
+		}
+
+		dstpath := filepath.Clean(strings.Replace(srcpath, src, dst, 1))
+		fmt.Printf("cp %s => %s\n", srcpath, dstpath)
+
+		if fi.IsDir() {
+			mkerr := os.Mkdir(dstpath, fi.Mode())
+			if os.IsExist(mkerr) {
+				return os.Chmod(dstpath, fi.Mode())
+			}
+
+			return mkerr
+		}
+
+		return copyFile(dstpath, srcpath, fi)
+	}
+
+	if err := filepath.Walk(src, fn); err != nil {
+		return fmt.Errorf("can't copy %s to %s: %v", src, dst, err)
+	}
+
+	return nil
+}
+
+func copyFile(dst, src string, sfi os.FileInfo) error {
+	from, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+
+	defer from.Close()
+
+	to, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, sfi.Mode())
+
+	if err != nil {
+		return err
+	}
+
+	defer to.Close()
+
+	if _, err = io.Copy(to, from); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// PackAssets packs static files
 func PackAssets(_ context.Context) error {
 	logger.Debug().Msg("Building frontend...")
 	npmBuild := exec.Command(`npm`, `run`, `build`)
@@ -205,18 +260,8 @@ func PackAssets(_ context.Context) error {
 	}
 	logger.Debug().Msg("Successfully built frontend project")
 
-	goPath, err := sh.Output(`go`, `env`, `GOPATH`)
-	if err != nil {
-		logger.Error().Err(err).Msg("Failed to determine GOPATH")
-		return err
-	}
-	if goPath == "" {
-		logger.Error().Msg("GOPATH is empty")
-		return fmt.Errorf("failed to get GOPATH")
-	}
-
-	statikPath := filepath.Join(goPath, "bin", "statik")
-	return sh.Run(statikPath, `-src`, `frontend/dist`, `-dest`, `.`, `-f`)
+	// Copy `frontend/dist` to `server/dist`
+	return CopyDir(filepath.Join("server", "dist"), filepath.Join("frontend", "dist"))
 }
 
 // InstallDeps installs extra tools required for building
@@ -231,29 +276,6 @@ func InstallDeps(_ context.Context) error {
 		return fmt.Errorf("failed to get GOPATH")
 	}
 
-	logger.Debug().Msg("Installing required tools")
-	for toolBinary, toolPkg := range map[string]string{
-		"statik": "github.com/rakyll/statik",
-	} {
-		tLogger := logger.With().Str("tool", toolBinary).Logger()
-		if toolPath, err := exec.LookPath(toolBinary); err == nil {
-			tLogger.Debug().Str("path", toolPath).Msg("Tool found in PATH, skip installing")
-			continue
-		}
-
-		goPathBin := filepath.Join(goPath, "bin", toolBinary)
-		if info, err := os.Stat(goPathBin); err == nil && !info.IsDir() {
-			tLogger.Debug().Str("path", goPathBin).Msg("Tool found in GOPATH/bin, skip installing")
-			continue
-		}
-
-		tLogger.Debug().Str("pkg", toolPkg).Msg("Tool not found, installing now")
-		if err = sh.Run(`go`, `install`, toolPkg); err != nil {
-			tLogger.Error().Err(err).Str("pkg", toolPkg).Msg("Failed to install tool")
-			return err
-		}
-	}
-	//return sh.Run(`go`, `get`, `github.com/akavel/rsrc`)
 	return nil
 }
 
@@ -275,7 +297,6 @@ func Clean(c context.Context) error {
 	}
 	sh.Rm("gocryptfs")
 	sh.Rm("gocryptfs-xray")
-	//os.RemoveAll(`rsrc.syso`)
 	return nil
 }
 

@@ -1,6 +1,17 @@
 // const FontminPlugin = require('fontmin-webpack')
 // const NukeCssPlugin = require('nukecss-webpack')
 
+let cssConfig = {};
+
+if (process.env.NODE_ENV === "production") {
+  cssConfig = {
+    extract: {
+      filename: "[name].css",
+      chunkFilename: "[name].css"
+    }
+  };
+}
+
 module.exports = {
   productionSourceMap: false,
 
@@ -20,6 +31,19 @@ module.exports = {
     // config.plugin('FontminPlugin')
     //   .use(FontminPlugin, [{autodetect: true, glyphs: []}])
 
+  },
+
+  css: cssConfig,
+  configureWebpack: {
+    output: {
+      filename: "[name].js"
+    },
+    optimization: {
+      splitChunks: false
+    }
+  },
+  devServer: {
+    disableHostCheck: true
   },
 
   pluginOptions: {
