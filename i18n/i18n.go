@@ -1,17 +1,24 @@
-//go:generate go run bundler.go
-
 package i18n
 
 import (
+	_ "embed"
 	"fmt"
 	"github.com/tidwall/gjson"
 	"strings"
 	"sync"
 )
 
-var l Localizer
+//go:embed locales.json
 var data string
+
+var l Localizer
 var once sync.Once
+
+func init() {
+	if !gjson.Valid(data) {
+		panic("malformed i18n data")
+	}
+}
 
 // Localizer is a type which can translates JSON key path to string in given locale.
 // It also features a channel through which locale change can be monitored.
