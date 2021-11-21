@@ -21,7 +21,7 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@intlify/vue-i18n-loader": "^1.0.0",
+    "@intlify/vue-i18n-loader": "^1.1.0",
     "@vue/cli-plugin-babel": "~4.5.15",
     "@vue/cli-plugin-eslint": "~4.5.15",
     "@vue/cli-service": "~4.5.15",
@@ -31,7 +31,7 @@
     "fontmin-webpack": "^2.0.7",
     "nukecss-webpack": "^2.0.4",
     "sass": "^1.43.4",
-    "sass-loader": "^10.0.2",
+    "sass-loader": "^10.2.0",
     "vue-cli-plugin-i18n": "~2.3.1",
     "vue-template-compiler": "^2.6.14"
   },
