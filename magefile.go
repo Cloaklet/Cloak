@@ -340,7 +340,7 @@ func linuxArch(goArch string) string {
 
 // Download static build binary of gocryptfs
 func DownloadExternalTools(c context.Context) error {
-	cloakVersion := "0.0.3"
+	cloakResourceVersion := "0.0.3"
 	gocryptfsVersion := "v2.2.1-6-gd530fbd"
 	goOs := c.Value(osKey).(string)
 	goArch := c.Value(archKey).(string)
@@ -353,7 +353,7 @@ func DownloadExternalTools(c context.Context) error {
 	switch goOs {
 	case "darwin", "linux":
 		for name := range tools {
-			toolUrl := fmt.Sprintf(tools[name], cloakVersion, gocryptfsVersion, goOs, goArch)
+			toolUrl := fmt.Sprintf(tools[name], cloakResourceVersion, gocryptfsVersion, goOs, goArch)
 			if err := downloadExecutable(toolUrl, name); err != nil {
 				return err
 			}
