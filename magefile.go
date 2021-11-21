@@ -340,19 +340,20 @@ func linuxArch(goArch string) string {
 
 // Download static build binary of gocryptfs
 func DownloadExternalTools(c context.Context) error {
-	cloakVersion := "0.0.2"
-	gocryptfsVersion := "eaca820e"
+	cloakVersion := "0.0.3"
+	gocryptfsVersion := "v2.2.1-6-gd530fbd"
 	goOs := c.Value(osKey).(string)
+	goArch := c.Value(archKey).(string)
 
 	// Here's a list of external tools to be downloaded, they are going to be bundled
 	tools := map[string]string{
-		"gocryptfs":      "https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-%s-%s",
-		"gocryptfs-xray": "https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-xray-%s-%s",
+		"gocryptfs":      "https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-%s-%s-%s",
+		"gocryptfs-xray": "https://github.com/Cloaklet/resources/releases/download/%s/gocryptfs-xray-%s-%s-%s",
 	}
 	switch goOs {
 	case "darwin", "linux":
 		for name := range tools {
-			toolUrl := fmt.Sprintf(tools[name], cloakVersion, gocryptfsVersion, goOs)
+			toolUrl := fmt.Sprintf(tools[name], cloakVersion, gocryptfsVersion, goOs, goArch)
 			if err := downloadExecutable(toolUrl, name); err != nil {
 				return err
 			}
