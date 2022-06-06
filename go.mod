@@ -17,7 +17,7 @@ require (
 	github.com/rs/zerolog v1.23.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.7.0
-	github.com/tidwall/gjson v1.8.1
+	github.com/tidwall/gjson v1.9.3
 	github.com/tidwall/sjson v1.1.7
 	golang.org/x/net v0.0.0-20210420210106-798c2154c571 // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
