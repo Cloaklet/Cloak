@@ -3,16 +3,16 @@
 <p align="center">A simple GUI for gocryptfs.</p>
 
 <p align="center">
-  <a href="https://github.com/Cloaklet/Cloak/actions/workflows/ci.yml">
-    <img src="https://img.shields.io/github/workflow/status/Cloaklet/Cloak/CI?style=for-the-badge" alt="Build Status">
+  <a href="https://github.com/Cloaklet/Cloak/actions/workflows/ci.yml" style="text-decoration: none;">
+    <img src="https://img.shields.io/github/actions/workflow/status/Cloaklet/Cloak/ci.yml?branch=master&style=for-the-badge" alt="Build Status">
   </a>
-  <a href="https://goreportcard.com/report/github.com/Cloaklet/Cloak">
+  <a href="https://goreportcard.com/report/github.com/Cloaklet/Cloak" style="text-decoration: none;">
     <img src="https://goreportcard.com/badge/github.com/Cloaklet/Cloak?style=for-the-badge" alt="Go Report Card">
   </a>
-  <a href="LICENSE">
+  <a href="LICENSE" style="text-decoration: none;">
     <img src="https://img.shields.io/github/license/Cloaklet/Cloak?style=for-the-badge" alt="Project License">
   </a>
-  <a href="https://github.com/Cloaklet/Cloak/releases/latest">
+  <a href="https://github.com/Cloaklet/Cloak/releases/latest" style="text-decoration: none;">
     <img src="https://img.shields.io/github/v/release/Cloaklet/Cloak?style=for-the-badge" alt="GitHub release">
   </a>
 </p>
