@@ -1,27 +1,99 @@
+<script setup lang="ts">
+import PasswordStrengthMeter from "./PasswordStrengthMeter.vue";
+import { computed, onMounted, ref , nextTick} from 'vue';
+import { useGlobalStore } from '@/stores/global';
+import { useI18n } from 'vue-i18n';
+
+const props = defineProps<{
+  using: 'password'|'masterkey',
+}>();
+
+const store = useGlobalStore();
+
+const masterkey = ref('');
+const password = ref('');
+const newPassword = ref('');
+const newPasswordRepeat = ref('');
+const passwordStrengthHint = ref('');
+// DOM refs
+const passwordInput = ref();
+const masterkeyInput = ref();
+const emit = defineEmits(['close'])
+const {t} = useI18n();
+
+const passwordMatch = computed(() => newPassword.value === newPasswordRepeat.value);
+const masterkeyValid = computed(() => masterkey.value.trim().length === 64);
+const selectedVault = computed(() => store.selectedVault);
+const canChangePassword = computed(() => {
+  if (props.using === 'password') {
+    return password.value &&
+        newPassword.value &&
+        newPassword.value.length >= store.minimalPasswordLength &&
+        passwordMatch.value
+  } else if (props.using === 'masterkey') {
+    return masterkeyValid.value &&
+        newPassword.value &&
+        newPassword.value.length >= store.minimalPasswordLength &&
+        passwordMatch.value
+  }
+  return false
+})
+const changeVaultPassword = () => {
+  if (!selectedVault.value) {return}
+  store.changeVaultPassword({
+    vaultId: selectedVault.value.id,
+    password: password.value,
+    masterkey: masterkey.value,
+    newpassword: newPassword.value
+  }).then(() => emit('close'))
+}
+const showPasswordFeedback = ({warning}: {warning: string}) => {
+  if (newPassword.value.length < store.minimalPasswordLength) {
+    passwordStrengthHint.value = t('misc.password.length_not_enough', {
+      length: store.minimalPasswordLength
+    })
+    return
+  }
+  if (warning) {
+    passwordStrengthHint.value = t(`zxcvbn.${warning}`) || warning
+  } else {
+    passwordStrengthHint.value = ''
+  }
+}
+
+onMounted(() => nextTick(() => {
+  if (props.using === 'password') {
+    passwordInput.value.focus()
+  } else if (props.using === 'masterkey') {
+    masterkeyInput.value.focus()
+  }
+}))
+
+</script>
 <template>
-  <div class="modal active" @keydown.esc="close">
-    <a class="modal-overlay" aria-label="Close" @click="close"></a>
+  <div class="modal active" @keydown.esc="$emit('close')">
+    <a class="modal-overlay" aria-label="Close" @click="$emit('close')"></a>
     <div class="modal-container">
       <div class="modal-header">
         <a class="btn btn-clear float-right"
            aria-label="Close"
-           @click="close"></a>
+           @click="$emit('close')"></a>
         <div class="modal-title h5"
-             v-if="using === 'password'"
+             v-if="using === password"
              v-t="'vault.options.change_password.title'"></div>
         <div class="modal-title h5"
-             v-if="using === 'masterkey'"
+             v-if="using === masterkey"
              v-t="'vault.options.recover_password.title'"></div>
       </div>
       <div class="modal-body">
         <div class="content">
           <div class="form-group"
-               v-if="using === 'password'">
+               v-if="using === password">
             <i18n tag="label"
                   class="form-label"
                   for="vault-chpw-oldpassword"
                   path="vault.options.change_password.label.password">
-              <template #vaultname>{{ selectedVault.name }}</template>
+              <template #vaultname>{{ selectedVault?.name }}</template>
             </i18n>
             <input class="form-input"
                    type="password"
@@ -30,13 +102,13 @@
                    v-model="password">
           </div>
           <div class="form-group"
-               v-if="using === 'masterkey'"
+               v-if="using === masterkey"
                :class="{ 'has-error': !masterkeyValid }">
             <i18n tag="label"
                   class="form-label"
                   for="vault-recoverpw-masterkey"
                   path="vault.options.recover_password.label.masterkey">
-              <template #vaultname>{{ selectedVault.name }}</template>
+              <template #vaultname>{{ selectedVault?.name }}</template>
             </i18n>
             <input class="form-input"
                    type="text"
@@ -50,7 +122,7 @@
                    v-t="'vault.options.change_password.label.newpassword'"></label>
             <PasswordStrengthMeter id="vault-chpw-newpassword"
                                    v-model="newPassword"
-                                   :secure-length="$store.getters.minimalPasswordLength"
+                                   :secure-length="store.minimalPasswordLength"
                                    :badge="false"
                                    :toggle="true"
                                    default-class="form-input"
@@ -77,14 +149,14 @@
       <div class="modal-footer">
         <button class="btn btn-primary float-right"
                 v-if="using === 'password'"
-                :class="{ loading: $wait.is('changing vault password') }"
-                :disabled="!canChangePassword || $wait.is('changing vault password')"
+                :class="{ loading: false }"
+                :disabled="!canChangePassword"
                 @click="changeVaultPassword"
                 v-t="'vault.options.change_password.button'"></button>
         <button class="btn btn-primary float-right"
                 v-if="using === 'masterkey'"
-                :class="{ loading: $wait.is('resetting vault password') }"
-                :disabled="!canChangePassword || $wait.is('resetting vault password')"
+                :class="{ loading: false}"
+                :disabled="!canChangePassword "
                 @click="changeVaultPassword"
                 v-t="'misc.done'"></button>
       </div>
@@ -93,101 +165,12 @@
 
 </template>
 
-<script>
-import {mapGetters} from 'vuex'
-import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
-
-export default {
-  name: "VaultPasswordChangingModal",
-  components: {PasswordStrengthMeter},
-  props: {
-    using: {
-      type: String,
-      validator: function(value) {
-        return ['password', 'masterkey'].indexOf(value) !== -1
-      }
-    }
-  },
-  data: function() {
-    return {
-      masterkey: '',
-      password: '',
-      newPassword: '',
-      newPasswordRepeat: '',
-      passwordStrengthHint: ''
-    }
-  },
-  computed: {
-    ...mapGetters(['selectedVault']),
-    passwordMatch() {
-      return this.newPassword === this.newPasswordRepeat
-    },
-    masterkeyValid() {
-      return this.masterkey.trim().length === 64
-    },
-    canChangePassword() {
-      if (this.using === 'password') {
-        return this.password &&
-            this.newPassword &&
-            this.newPassword.length >= this.$store.getters.minimalPasswordLength &&
-            this.passwordMatch
-      } else if (this.using === 'masterkey') {
-        return this.masterkeyValid &&
-            this.newPassword &&
-            this.newPassword.length >= this.$store.getters.minimalPasswordLength &&
-            this.passwordMatch
-      }
-      return false
-    }
-  },
-  methods: {
-    close() {
-      this.$emit('close')
-    },
-    changeVaultPassword() {
-      this.$wait.start('changing vault password')
-      this.$store.dispatch('changeVaultPassword', {
-        vaultId: this.selectedVault.id,
-        password: this.password,
-        masterkey: this.masterkey,
-        newpassword: this.newPassword
-      }).then(() => {
-        this.close()
-      }).finally(() => {
-        this.$wait.end('changing vault password')
-      })
-    },
-    showPasswordFeedback({warning}) {
-      if (this.newPassword.length < this.$store.getters.minimalPasswordLength) {
-        this.passwordStrengthHint = this.$t('misc.password.length_not_enough', {
-          length: this.$store.getters.minimalPasswordLength
-        })
-        return
-      }
-      if (warning) {
-        this.passwordStrengthHint = this.$t(`zxcvbn.${warning}`) || warning
-      } else {
-        this.passwordStrengthHint = ''
-      }
-    }
-  },
-  mounted() {
-    this.$nextTick(() => {
-      if (this.using === 'password') {
-        this.$refs.passwordInput.focus()
-      } else if (this.using === 'masterkey') {
-        this.$refs.masterkeyInput.focus()
-      }
-    })
-  }
-}
-</script>
 
 <style scoped>
 .form-input-hint {
   margin-bottom: 0;
 }
-/deep/ .Password__strength-meter {
+* :deep(.Password__strength-meter) {
   margin: .4rem auto;
 }
 </style>

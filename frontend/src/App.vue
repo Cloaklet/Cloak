@@ -1,8 +1,17 @@
+<script setup lang="ts">
+import '@vianetz/spectre.css/dist/spectre.min.css'
+import 'remixicon/fonts/remixicon.css'
+import Alert from './components/Alert.vue'
+import VaultList from './components/VaultList.vue'
+import AppHeader from "./components/AppHeader.vue"
+import VaultInfoPanel from "./components/VaultInfoPanel.vue"
+
+</script>
 <template>
   <transition appear name="fade">
     <div id="app" class="container hero">
       <div class="columns col-gapless">
-        <div class="column col-7 col-mx-auto card"><!--Limit width-->
+        <div class="column col-mx-auto card"><!--Limit width-->
           <AppHeader/>
           <div class="columns col-gapless card-body p-0">
             <VaultList/>
@@ -15,24 +24,6 @@
   </transition>
 </template>
 
-<script>
-import 'spectre.css/dist/spectre.min.css'
-import 'remixicon/fonts/remixicon.css'
-import Alert from '@/components/Alert.vue'
-import VaultList from '@/components/VaultList.vue'
-import AppHeader from "@/components/AppHeader"
-import VaultInfoPanel from "@/components/VaultInfoPanel"
-
-export default {
-  name: 'App',
-  components: {
-    VaultInfoPanel,
-    AppHeader,
-    Alert,
-    VaultList
-  },
-}
-</script>
 
 <style>
 #app {
@@ -62,3 +53,4 @@ export default {
   opacity: 0;
 }
 </style>
+

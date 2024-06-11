@@ -1,3 +1,8 @@
+<script setup lang="ts">
+import AppConfigModal from "./AppConfigModal.vue";
+import { ref } from "vue";
+const showConfigModal = ref(false);
+</script>
 <template>
   <div class="card-header p-0">
     <header class="navbar bg-primary text-light">
@@ -13,19 +18,6 @@
     <AppConfigModal v-if="showConfigModal" @close="showConfigModal = false"/>
   </div>
 </template>
-
-<script>
-import AppConfigModal from "@/components/AppConfigModal";
-export default {
-  name: "AppHeader",
-  components: {AppConfigModal},
-  data: function() {
-    return {
-      showConfigModal: false
-    }
-  }
-}
-</script>
 
 <style scoped>
 header {

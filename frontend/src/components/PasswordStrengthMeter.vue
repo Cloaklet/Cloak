@@ -1,67 +1,11 @@
-<template>
-  <div class="Password">
-    <div
-        v-if="!strengthMeterOnly"
-        class="Password__group"
-    >
-      <input
-          v-bind="$attrs"
-          :type="inputType"
-          :ref="referenceValue"
-          :class="[defaultClass, $attrs.disabled ? disabledClass : '']"
-          :value="value"
-          @input="evt => emitValue('input', evt.target.value)"
-          @blur="evt => emitValue('blur', evt.target.value)"
-          @focus="evt => emitValue('focus', evt.target.value)"
-      >
-      <div class="Password__icons">
-        <div
-            v-if="badge"
-            :class="[isSecure ? successClass : '', !isSecure && isActive ? errorClass : '' ]"
-            class="Password__badge"
-            v-cloak
-        >
-          {{ passwordCount }}
-        </div>
-        <div
-            v-if="toggle"
-            class="Password__toggle">
-          <button
-              type="button"
-              class="btn-clean"
-              :aria-label="showPasswordLabel"
-              tabindex="-1"
-              @click.prevent="togglePassword()">
-            <svg v-if="this.$data.shouldShowPassword" version="1.1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <title>{{showPasswordLabel}}</title>
-              <path d="M12 9c1.641 0 3 1.359 3 3s-1.359 3-3 3-3-1.359-3-3 1.359-3 3-3zM12 17.016c2.766 0 5.016-2.25 5.016-5.016s-2.25-5.016-5.016-5.016-5.016 2.25-5.016 5.016 2.25 5.016 5.016 5.016zM12 4.5c5.016 0 9.281 3.094 11.016 7.5-1.734 4.406-6 7.5-11.016 7.5s-9.281-3.094-11.016-7.5c1.734-4.406 6-7.5 11.016-7.5z"></path>
-            </svg>
-            <svg v-else version="1.1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <title>{{showPasswordLabel}}</title>
-              <path d="M11.859 9h0.141c1.641 0 3 1.359 3 3v0.188zM7.547 9.797c-0.328 0.656-0.563 1.406-0.563 2.203 0 2.766 2.25 5.016 5.016 5.016 0.797 0 1.547-0.234 2.203-0.563l-1.547-1.547c-0.188 0.047-0.422 0.094-0.656 0.094-1.641 0-3-1.359-3-3 0-0.234 0.047-0.469 0.094-0.656zM2.016 4.266l1.266-1.266 17.719 17.719-1.266 1.266c-1.124-1.11-2.256-2.213-3.375-3.328-1.359 0.563-2.813 0.844-4.359 0.844-5.016 0-9.281-3.094-11.016-7.5 0.797-1.969 2.109-3.656 3.75-4.969-0.914-0.914-1.812-1.844-2.719-2.766zM12 6.984c-0.656 0-1.266 0.141-1.828 0.375l-2.156-2.156c1.219-0.469 2.578-0.703 3.984-0.703 5.016 0 9.234 3.094 10.969 7.5-0.75 1.875-1.922 3.469-3.422 4.734l-2.906-2.906c0.234-0.563 0.375-1.172 0.375-1.828 0-2.766-2.25-5.016-5.016-5.016z"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div v-if="showStrengthMeter" :class="[strengthMeterClass]">
-      <div :class="[strengthMeterFillClass]" :data-score="passwordStrength"></div>
-    </div>
-  </div>
-</template>
-
-<script>
+<script setup lang="ts">
 /*
 Notice: this file is taken from
 https://github.com/JokerQyou/vue-password-strength-meter/blob/13eec5dab7d1769ff156d11ad618861619cca4ae/src/components/PasswordStrengthMeter.vue
  */
+import { computed, ref, watch } from 'vue';
 import zxcvbn from 'zxcvbn'
-
-export default {
-  name: 'PasswordStrengthMeter',
-  inheritAttrs: false,
-  props: {
+const props = defineProps({
     /**
      * Binded value
      * @type {Object}
@@ -209,94 +153,103 @@ export default {
      * @type String
      */
     userInputs: {
-      type: Array,
+      type: Array<string>,
       default: () => []
     }
-  },
-  data () {
-    return {
-      password: null,
-      shouldShowPassword: false
-    }
-  },
+  });
 
-  methods: {
-    togglePassword () {
-      if (this.$data.shouldShowPassword) {
-        this.$emit('hide')
-        this.$data.shouldShowPassword = false
-      } else {
-        this.$emit('show')
-        this.$data.shouldShowPassword = true
-      }
-    },
-    emitValue (type, value) {
-      this.$emit(type, value)
-      this.password = value
-    }
-  },
+  const emit = defineEmits(['hide', 'show', 'feedback', 'score', 'input', 'blur', 'focus'])
+  const password = ref<string|null>(props.value||null);
+  const shouldShowPassword = ref<boolean>(false);
 
-  computed: {
-    /**
-     * passwordStrength is the score calculated by zxcvbn
-     * @return {Number} Password Strength Score
-     */
-    passwordStrength () {
-      return this.password ? zxcvbn(this.password, (this.userInputs.length >= 1 ? this.userInputs : null)).score : null
-    },
+  const passwordStrength = computed(() => password.value ? (
+    zxcvbn(password.value, (props.userInputs.length >= 1 ? props.userInputs : undefined)).score
+    ) : null);
+    const isSecure = computed(() => password.value ? password.value.length >= props.secureLength : null);
+    const isActive = computed(() => password.value && password.value.length > 0);
+    const passwordCount = computed(() => password.value && (
+      password.value.length > props.secureLength ? `${props.secureLength}+` : password.value.length
+    ));
+    const inputType = computed(() => shouldShowPassword.value || props.showPassword ? 'text' : 'password');
+    const showPasswordLabel = computed(() => shouldShowPassword.value || props.showPassword ? props.labelHide : props.labelShow);
 
-    /**
-     * isSecure checks if the length of the password is longer then
-     * the defined `secureLength`
-     * @return {Boolean} Password length longer then minLength
-     */
-    isSecure () {
-      return this.password ? this.password.length >= this.secureLength : null
-    },
-
-    /**
-     * isActive checks if a password is entered.
-     * It's required for the password count badge.
-     * @return {Boolean} Password entered
-     */
-    isActive () {
-      return this.password && this.password.length > 0
-    },
-
-    /**
-     * passwordCount holds the character count of the
-     * current password. It shows the count up to the `secureLength`.
-     * @return {Number} Password Character Count
-     */
-    passwordCount () {
-      return this.password && (this.password.length > this.secureLength ? `${this.secureLength}+` : this.password.length)
-    },
-    /**
-     * Changing the input type from password to text
-     * based on the local _showPassword data or the showPassword prop
-     */
-    inputType () {
-      return this.$data.shouldShowPassword || this.showPassword ? 'text' : 'password'
-    },
-
-    showPasswordLabel () {
-      return this.$data.shouldShowPassword || this.showPassword ? this.labelHide : this.labelShow
-    }
-  },
-
-  watch: {
-    value (newValue) {
-      if (this.strengthMeterOnly) {
-        this.emitValue('input', newValue)
-      }
-      this.$emit('feedback', zxcvbn(newValue).feedback)
-    },
-    passwordStrength (score) {
-      this.$emit('score', score)
+  const togglePassword = () => {
+    if (shouldShowPassword.value) {
+      emit('hide')
+      shouldShowPassword.value = false
+    } else {
+      emit('show')
+      shouldShowPassword.value = true
     }
   }
-}
+  const emitValue = (event: typeof emit.arguments[0], value: string) => {
+    emit(event, value)
+  }
+
+  watch(password, (newValue) => {
+    if (props.strengthMeterOnly) {
+      emit('input', newValue)
+    }
+    emit('feedback', zxcvbn(newValue!).feedback)
+  })
+  watch(passwordStrength, (newValue) => {
+    emit('score', newValue)
+  })
+
 </script>
+<template>
+  <div class="Password">
+    <div
+        v-if="!strengthMeterOnly"
+        class="Password__group"
+    >
+      <input
+          v-bind="$attrs"
+          :type="inputType"
+          :ref="referenceValue"
+          :class="[defaultClass, $attrs.disabled ? disabledClass : '']"
+          :value="value"
+          @input="evt => emitValue('input', (evt.target as HTMLInputElement).value)"
+          @blur="evt => emitValue('blur', (evt.target as HTMLInputElement).value)"
+          @focus="evt => emitValue('focus', (evt.target as HTMLInputElement).value)"
+      >
+      <div class="Password__icons">
+        <div
+            v-if="badge"
+            :class="[isSecure ? successClass : '', !isSecure && isActive ? errorClass : '' ]"
+            class="Password__badge"
+            v-cloak
+        >
+          {{ passwordCount }}
+        </div>
+        <div
+            v-if="toggle"
+            class="Password__toggle">
+          <button
+              type="button"
+              class="btn-clean"
+              :aria-label="showPasswordLabel"
+              tabindex="-1"
+              @click.prevent="togglePassword()">
+            <svg v-if="shouldShowPassword" version="1.1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <title>{{showPasswordLabel}}</title>
+              <path d="M12 9c1.641 0 3 1.359 3 3s-1.359 3-3 3-3-1.359-3-3 1.359-3 3-3zM12 17.016c2.766 0 5.016-2.25 5.016-5.016s-2.25-5.016-5.016-5.016-5.016 2.25-5.016 5.016 2.25 5.016 5.016 5.016zM12 4.5c5.016 0 9.281 3.094 11.016 7.5-1.734 4.406-6 7.5-11.016 7.5s-9.281-3.094-11.016-7.5c1.734-4.406 6-7.5 11.016-7.5z"></path>
+            </svg>
+            <svg v-else version="1.1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <title>{{showPasswordLabel}}</title>
+              <path d="M11.859 9h0.141c1.641 0 3 1.359 3 3v0.188zM7.547 9.797c-0.328 0.656-0.563 1.406-0.563 2.203 0 2.766 2.25 5.016 5.016 5.016 0.797 0 1.547-0.234 2.203-0.563l-1.547-1.547c-0.188 0.047-0.422 0.094-0.656 0.094-1.641 0-3-1.359-3-3 0-0.234 0.047-0.469 0.094-0.656zM2.016 4.266l1.266-1.266 17.719 17.719-1.266 1.266c-1.124-1.11-2.256-2.213-3.375-3.328-1.359 0.563-2.813 0.844-4.359 0.844-5.016 0-9.281-3.094-11.016-7.5 0.797-1.969 2.109-3.656 3.75-4.969-0.914-0.914-1.812-1.844-2.719-2.766zM12 6.984c-0.656 0-1.266 0.141-1.828 0.375l-2.156-2.156c1.219-0.469 2.578-0.703 3.984-0.703 5.016 0 9.234 3.094 10.969 7.5-0.75 1.875-1.922 3.469-3.422 4.734l-2.906-2.906c0.234-0.563 0.375-1.172 0.375-1.828 0-2.766-2.25-5.016-5.016-5.016z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showStrengthMeter" :class="[strengthMeterClass]">
+      <div :class="[strengthMeterFillClass]" :data-score="passwordStrength"></div>
+    </div>
+  </div>
+</template>
+
 
 <style lang="scss">
 [v-cloak] {

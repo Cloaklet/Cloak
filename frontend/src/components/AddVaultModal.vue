@@ -1,11 +1,73 @@
+<script setup lang="ts">
+import { useGlobalStore } from '@/stores/global';
+import FileSelectionModal from './FileSelectionModal.vue'
+import PasswordStrengthMeter from './PasswordStrengthMeter.vue'
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const store = useGlobalStore();
+const emit = defineEmits(['close', 'add-vault-request']);
+const {t} = useI18n();
+
+const mode = ref<null|'add'|'create'>(null);
+const createVaultName = ref<string|null>(null);
+const createVaultDir = ref<string|null>(null);
+const addVaultFile = ref<string|null>(null);
+const showDirSelection = ref(false);
+const showFileSelection = ref(false);
+const createVaultPassword = ref('');
+const createVaultPasswordCheck = ref('');
+const passwordStrengthHint = ref('');
+
+const passwordMatch = computed(() => createVaultPassword.value === createVaultPasswordCheck.value);
+const canCreate = computed(() => {
+  return createVaultName.value &&
+      createVaultDir.value &&
+      createVaultPassword.value.length >= store.minimalPasswordLength &&
+      passwordMatch.value
+});
+
+const setCreateVaultDir = (path: string) => {
+  createVaultDir.value = path;
+  showDirSelection.value = false;
+}
+const setAddVaultFile = (path: string) => {
+  addVaultFile.value = path;
+  showFileSelection.value = false;
+}
+const requestCreateVault = () => {
+  store.createVault({
+    name: createVaultName.value!,
+    path: createVaultDir.value!,
+    password: createVaultPassword.value,
+  });
+}
+const requestAddVault = () => {
+  emit('add-vault-request', {path: addVaultFile.value})
+}
+const showPasswordFeedback = ({warning}: {warning: string}) => {
+  if (createVaultPassword.value.length < store.minimalPasswordLength) {
+    passwordStrengthHint.value = t('misc.password.length_not_enough', {
+      length: store.minimalPasswordLength
+    })
+    return
+  }
+  if (warning) {
+    passwordStrengthHint.value = t(`zxcvbn.${warning}`) || warning
+  } else {
+    passwordStrengthHint.value = ''
+  }
+}
+
+</script>
 <template>
-  <div class="modal active" @keydown.esc="close">
-    <a class="modal-overlay" aria-label="Close" @click="close"></a>
+  <div class="modal active" @keydown.esc="$emit('close')">
+    <a class="modal-overlay" aria-label="Close" @click="$emit('close')"></a>
     <div class="modal-container">
       <div class="modal-header">
         <a class="btn btn-clear float-right"
            aria-label="Close"
-           @click="close"></a>
+           @click="$emit('close')"></a>
         <div class="modal-title h5" v-t="'list.add.title'"></div>
       </div>
       <div class="modal-body p-0 bg-gray">
@@ -60,7 +122,7 @@
                        v-t="'list.create.password.label'"></label>
                 <PasswordStrengthMeter id="create-vault-password"
                                        v-model="createVaultPassword"
-                                       :secure-length="$store.getters.minimalPasswordLength"
+                                       :secure-length="store.minimalPasswordLength"
                                        :badge="false"
                                        :toggle="true"
                                        default-class="form-input"
@@ -116,16 +178,16 @@
         <button class="btn float-left" v-if="mode" @click="mode = null" v-t="'misc.back'"></button>
         <button class="btn btn-primary float-right"
                 v-if="mode === 'create'"
-                :class="{ loading: $wait.is('creating vault') }"
+                :class="{ loading: false }"
                 v-wait:click.start="'creating vault'"
-                :disabled="!canCreate || $wait.is('creating vault')"
+                :disabled="!canCreate"
                 @click="requestCreateVault"
                 v-t="'misc.create'"></button>
         <button class="btn btn-primary float-right"
                 v-if="mode === 'add'"
-                :class="{ loading: $wait.is('adding vault') }"
+                :class="{ loading: false}"
                 v-wait:click.start="'adding vault'"
-                :disabled="!addVaultFile || $wait.is('adding vault')"
+                :disabled="!addVaultFile "
                 @click="requestAddVault"
                 v-t="'misc.add'"></button>
       </div>
@@ -133,84 +195,12 @@
   </div>
 </template>
 
-<script>
-import FileSelectionModal from './FileSelectionModal'
-import PasswordStrengthMeter from "@/components/PasswordStrengthMeter";
-
-export default {
-  name: "AddVaultModal",
-  components: {
-    PasswordStrengthMeter,
-    FileSelectionModal
-  },
-  data: function() {
-    return {
-      mode: null,  // add / create / null
-      createVaultName: null,
-      createVaultDir: null,
-      addVaultFile: null,
-      showDirSelection: false,
-      showFileSelection: false,
-      createVaultPassword: '',
-      createVaultPasswordCheck: '',
-      passwordStrengthHint: ''
-    }
-  },
-  computed: {
-    passwordMatch() {
-      return this.createVaultPassword === this.createVaultPasswordCheck
-    },
-    canCreate() {
-      return this.createVaultName &&
-          this.createVaultDir &&
-          this.createVaultPassword.length >= this.$store.getters.minimalPasswordLength &&
-          this.passwordMatch
-    },
-  },
-  methods: {
-    setCreateVaultDir(path) {
-      this.createVaultDir = path
-      this.showDirSelection = false
-    },
-    setAddVaultFile(path) {
-      this.addVaultFile = path
-      this.showFileSelection = false
-    },
-    close() {
-      this.$emit('close')
-    },
-    requestCreateVault() {
-      this.$emit('create-vault-request', {
-        path: this.createVaultDir,
-        name: this.createVaultName,
-        password: this.createVaultPassword
-      })
-    },
-    requestAddVault() {
-      this.$emit('add-vault-request', {path: this.addVaultFile})
-    },
-    showPasswordFeedback({warning}) {
-      if (this.createVaultPassword.length < this.$store.getters.minimalPasswordLength) {
-        this.passwordStrengthHint = this.$t('misc.password.length_not_enough', {
-          length: this.$store.getters.minimalPasswordLength
-        })
-        return
-      }
-      if (warning) {
-        this.passwordStrengthHint = this.$t(`zxcvbn.${warning}`) || warning
-      } else {
-        this.passwordStrengthHint = ''
-      }
-    }
-  },
-}
-</script>
 
 <style scoped>
 .form-input-hint {
   margin-bottom: 0;
 }
-/deep/ .Password__strength-meter {
+* :deep(.Password__strength-meter) {
   margin: .4rem auto;
 }
 </style>

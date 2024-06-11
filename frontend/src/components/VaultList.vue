@@ -1,3 +1,36 @@
+<script setup lang="ts">
+import AddVaultModal from './AddVaultModal.vue'
+import {useGlobalStore} from '@/stores/global'
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const {locale} = useI18n();
+const store = useGlobalStore();
+const showAddVaultModal = ref(false);
+
+const selectedVault = computed(() => store.selectedVault);
+const vaultsCount = computed(() => store.vaults.length);
+
+const addVault = (payload: {path: string}) => {
+  store.addVault(payload).then(() => {
+    showAddVaultModal.value = false
+  })
+}
+const createVault = (payload: {name: string, path: string, password: string}) => {
+  store.createVault(payload).then(() => {
+    showAddVaultModal.value = false
+  })
+}
+
+onMounted(() => {
+  store.loadAppConfig().then((options) => {
+    locale.value = options.locale
+  })
+  store.loadVaults()
+})
+
+</script>
+
 <template>
   <div class="column col-4 p-relative">
     <div class="menu p-0 vault-list">
@@ -5,8 +38,8 @@
         <p class="empty-title h5" v-t="'list.novault.title'"></p>
         <p class="empty-subtitle" v-t="'list.novault.subtitle'"></p>
       </div>
-      <div class="menu-item mt-0" v-for="vault in $store.state.vaults" :key="vault.id">
-        <a :class="{ active: vault === selectedVault }" @click="selectVault({vaultId: vault.id})">
+      <div class="menu-item mt-0" v-for="vault in store.vaults" :key="vault.id">
+        <a :class="{ active: vault.selected }" @click="store.selectVault({vaultId: vault.id})">
           <div class="tile tile-centered">
             <div class="tile-icon">
               <i class="ri-lock-unlock-fill ri-lg" v-if="vault.state === 'unlocked'"></i>
@@ -26,9 +59,9 @@
               @click="showAddVaultModal = true">➕</button>
       <button class="btn btn-lg bg-gray h6 text-normal tooltip"
               :data-tooltip="$t('list.buttons.remove')"
-              :disabled="!selectedVault || $wait.is('removing vault')"
-              :class="{ loading: $wait.is('removing vault') }"
-              @click="removeVault({vaultId: selectedVault.id})">➖</button>
+              :disabled="!store.selectedVault"
+              :class="{ loading: false }"
+              @click="store.removeVault({vaultId: selectedVault!.id})">➖</button>
     </div>
     <AddVaultModal v-if="showAddVaultModal"
                    @close="showAddVaultModal = false"
@@ -36,49 +69,6 @@
                    @create-vault-request="createVault"/>
   </div>
 </template>
-
-<script>
-import {mapGetters, mapMutations} from 'vuex'
-import AddVaultModal from './AddVaultModal'
-import {mapWaitingActions} from 'vue-wait'
-
-export default {
-  name: "VaultList",
-  components: {
-    AddVaultModal
-  },
-  data: function () {
-    return {
-      showAddVaultModal: false
-    }
-  },
-  computed: {
-    ...mapGetters(['selectedVault', 'vaultsCount'])
-  },
-  methods: {
-    ...mapMutations(['selectVault']),
-    ...mapWaitingActions({
-      removeVault: 'removing vault'
-    }),
-    addVault(payload) {
-      this.$store.dispatch('addVault', payload).then(() => {
-        this.showAddVaultModal = false
-        this.$wait.end('adding vault')
-      })
-    },
-    createVault(payload) {
-      this.$store.dispatch('createVault', payload).then(() => {
-        this.showAddVaultModal = false
-        this.$wait.end('creating vault')
-      })
-    }
-  },
-  mounted() {
-    this.$store.dispatch('loadAppConfig').then(({locale}) => this.$root.$i18n.locale = locale)
-    this.$store.dispatch('loadVaults')
-  }
-}
-</script>
 
 <style scoped>
 .column {

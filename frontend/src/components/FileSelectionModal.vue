@@ -1,12 +1,77 @@
+<script setup lang="ts">
+import { useGlobalStore } from '@/stores/global';
+import { computed, onMounted, ref, nextTick} from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const props = defineProps<{
+  title?: string,
+  mode: 'file'|'directory',
+  okBtn?: string,
+}>();
+
+type fileItem = {
+  name: string
+  type: 'file'|'directory'
+}
+
+const {t} = useI18n();
+const store = useGlobalStore();
+const pwd = ref('');
+const items = ref<fileItem[]>([]);
+const selected = ref<fileItem|null>(null);
+const sep = ref('');
+const emit = defineEmits(['selected', 'close']);
+
+const hasParent = computed(() => pwd.value && pwd.value !== '/');
+const canFinishSelection = computed(() => props.mode === 'directory' || (props.mode === 'file' && !!selected.value));
+
+const listSubPaths = (d: string) => {
+  store.listSubPaths({path: d}).then(data => {
+    pwd.value = data.pwd
+    sep.value = data.sep
+    items.value = data.items
+  })
+}
+const clickOnItem = (item: fileItem) => {
+  // Click on a directory enters it
+  if (item.type === 'directory') {
+    selected.value = null;
+    return listSubPaths(`${pwd.value}${sep.value}${item.name}`)
+  }
+  // Click on a file selects it, but only if we're in file mode
+  // Only allow selecting gocryptfs.conf
+  if (props.mode === 'file' && item.name === 'gocryptfs.conf') {
+    selected.value = item
+  }
+}
+const clickOnParentPath = () => {
+  selected.value = null;
+  listSubPaths(`${pwd.value}${sep.value}..`)
+}
+const selectItem = () => {
+  if (props.mode === 'file') {
+    emit('selected', `${pwd.value}${sep.value}${selected.value!.name}`)
+  } else if (props.mode === 'directory') {
+    emit('selected', `${pwd.value}`)
+  }
+}
+
+onMounted(() => {
+  nextTick(()=>{
+    listSubPaths('$HOME');
+  })
+})
+
+</script>
 <template>
-  <div class="modal active" @keydown.esc="close">
-    <a class="modal-overlay" aria-label="Close" @click="close"></a>
+  <div class="modal active" @keydown.esc="$emit('close')">
+    <a class="modal-overlay" aria-label="Close" @click="$emit('close')"></a>
     <div class="modal-container">
       <div class="modal-header">
         <a class="btn btn-clear float-right"
            aria-label="Close"
-           @click="close"></a>
-        <div class="modal-title h5">{{ title }}</div>
+           @click="$emit('close')"></a>
+        <div class="modal-title h5">{{ title || t('select.default_title') }}</div>
       </div>
       <div class="modal-body p-0 bg-gray">
         <div class="content">
@@ -46,99 +111,13 @@
                disabled>
         <button class="btn btn-primary"
                 :disabled="!canFinishSelection"
-                @click="selectItem">{{ okBtn }}</button>
-        <button class="btn ml-1" aria-label="Close" @click="close" v-t="'misc.cancel'"></button>
+                @click="selectItem">{{ okBtn || t('misc.select') }}</button>
+        <button class="btn ml-1" aria-label="Close" @click="$emit('close')" v-t="'misc.cancel'"></button>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-import {mapMutations} from 'vuex'
-
-export default {
-  name: "FileSelectionModal",
-  props: {
-    mode: {
-      type: String,
-      required: true,
-      validator: function(value) {
-        return ['file', 'directory'].indexOf(value) !== -1
-      }
-    },
-    title: {
-      type: String,
-      default: function() {
-        return this.$t('select.default_title')
-      }
-    },
-    okBtn: {
-      type: String,
-      default: function() {
-        return this.$t('misc.select')
-      }
-    }
-  },
-  data: function () {
-    return {
-      pwd: "",
-      items: [],
-      selected: null,
-      sep: "",  // path separator
-    }
-  },
-  computed: {
-    hasParent: function() {
-      return this.pwd && this.pwd !== '/'
-    },
-    canFinishSelection: function() {
-      // Either we've selected a file in file mode, or we are inside a directory in directory mode
-      return this.mode === 'directory' || (this.mode === 'file' && !!this.selected)
-    },
-  },
-  methods: {
-    ...mapMutations(['setError']),
-    listSubPaths(pwd) {
-      this.$store.dispatch('listSubPaths', {path: pwd}).then(data => {
-        this.pwd = data.pwd
-        this.sep = data.sep
-        this.items = data.items
-      })
-    },
-    clickOnItem(item) {
-      // Click on a directory enters it
-      if (item.type === 'directory') {
-        this.selected = null;
-        return this.listSubPaths(`${this.pwd}${this.sep}${item.name}`)
-      }
-      // Click on a file selects it, but only if we're in file mode
-      // Only allow selecting gocryptfs.conf
-      if (this.mode === 'file' && item.name === 'gocryptfs.conf') {
-        this.selected = item
-      }
-    },
-    clickOnParentPath() {
-      this.selected = null;
-      this.listSubPaths(`${this.pwd}${this.sep}..`)
-    },
-    selectItem() {
-      if (this.mode === 'file') {
-        this.$emit('selected', `${this.pwd}${this.sep}${this.selected.name}`)
-      } else if (this.mode === 'directory') {
-        this.$emit('selected', `${this.pwd}`)
-      }
-    },
-    close() {
-      this.$emit('close')
-    }
-  },
-  mounted() {
-    this.$nextTick(() => {
-      this.listSubPaths('$HOME')
-    })
-  }
-}
-</script>
 
 <style scoped>
 .modal-body {

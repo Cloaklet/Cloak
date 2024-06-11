@@ -1,3 +1,41 @@
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue';
+import { useGlobalStore } from '@/stores/global';
+import { useI18n } from 'vue-i18n';
+
+const {te, t} = useI18n();
+const timeoutId = ref<number|null>(null);
+const store = useGlobalStore();
+const hasAlert = computed(() => store.error.msg.length > 0);
+const isError = computed(() => store.error.code !== 0);
+const errCode = computed(() => store.error.code);
+const translatedErrMsg = computed(() => {
+  const key = `errors.api_${errCode.value}`;
+  if (errCode.value! >= 0 && te(key)) {
+    return t(key);
+  }
+  return store.error.msg;
+});
+const closeAlert = () => {
+  store.error = {
+    code: 0,
+    msg: '',
+  };
+}
+watch(errCode, (newValue, oldValue) => {
+  if (oldValue !== null) {
+    clearTimeout(timeoutId.value!);
+    timeoutId.value = null;
+  }
+  if (newValue === 0) {
+    timeoutId.value = setTimeout(() => {
+      store.closeAlert();
+      timeoutId.value = null;
+    }, 2000);
+  }
+})
+</script>
+
 <template>
   <div class="toast p-fixed d-inline"
        :class="[ isError ? 'toast-error': 'toast-success' ]"
@@ -10,55 +48,6 @@
     </p>
   </div>
 </template>
-
-<script>
-import {mapMutations} from 'vuex'
-
-export default {
-  name: 'Alert',
-  data: function () {
-    return { timeoutId: null }
-  },
-  computed: {
-    hasAlert() {
-      return this.$store.state.error.msg.length > 0
-    },
-    isError() {
-      return this.$store.state.error.code !== 0
-    },
-    errCode() {
-      return this.$store.state.error.code
-    },
-    translatedErrMsg() {
-      const key = `errors.api_${this.errCode}`
-      if (this.errCode >= 0 && this.$te(key)) {
-          return this.$t(key)
-      }
-      return this.$store.state.error.msg
-    }
-  },
-  methods: {
-    ...mapMutations(['closeAlert'])
-  },
-  watch: {
-    errCode(newValue) {
-      // Use setTimeout to automatically close the alert if it is not an error.
-      // If the code changes then we reset the timeout.
-      if (this.timeoutId !== null) {
-        clearTimeout(this.timeoutId);
-        this.timeoutId = null
-      }
-
-      if (newValue === 0) {
-        this.timeoutId = setTimeout(() => {
-          this.closeAlert();
-          this.timeoutId = null
-        }, 2000)
-      }
-    }
-  }
-}
-</script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>

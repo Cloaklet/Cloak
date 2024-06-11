@@ -1,25 +1,56 @@
+<script setup lang="ts">
+import { useGlobalStore } from '@/stores/global';
+import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const {t, locale} = useI18n();
+
+const store = useGlobalStore();
+const version = computed(() => store.version);
+const lang = computed(() => store.options.locale);
+const loglevel = computed(() => store.options.loglevel);
+
+const enum tab  {
+  options = 'options',
+  about = 'about',
+}
+const active = ref<tab>(tab.options);
+
+const changeLanguage = (event: Event) => {
+  store.setOptions({
+    locale: (event.target as HTMLSelectElement).value
+  })
+  // FIXME frontend i18n
+  locale.value = store.options.locale!
+}
+const changeLogLevel = (event: Event) => {
+  store.setOptions({
+    loglevel: (event.target as HTMLSelectElement).value
+  })
+}
+</script>
 <template>
-  <div class="modal active" @keydown.esc="close">
-    <a class="modal-overlay" aria-label="Close" @click="close"></a>
+  <div class="modal active" @keydown.esc="$emit('close')">
+    <a class="modal-overlay" aria-label="Close" @click="$emit('close')"></a>
     <div class="modal-container">
       <div class="modal-header">
         <a class="btn btn-clear float-right"
            aria-label="Close"
-           @click="close"></a>
+           @click="$emit('close')"></a>
         <div class="modal-title h5" v-t="'config.title'"></div>
       </div>
       <div class="modal-body p-2 bg-gray">
         <div class="content mx-2">
           <ul class="tab tab-block">
             <li class="tab-item"
-                :class="{ active: active === 'options' }"
-                @click="active = 'options'">
-              <a><i class="ri-tools-fill"></i> {{ $t('config.general.title') }}</a>
+                :class="{ active: active === tab.options }"
+                @click="active = tab.options">
+              <a><i class="ri-tools-fill"></i> {{ t('config.general.title') }}</a>
             </li>
             <li class="tab-item"
-                :class="{ active: active === 'about' }"
-                @click="active = 'about'">
-              <a><i class="ri-information-fill"></i> {{ $t('config.about.title') }}</a>
+                :class="{ active: active === tab.about }"
+                @click="active = tab.about">
+              <a><i class="ri-information-fill"></i> {{ t('config.about.title') }}</a>
             </li>
           </ul>
           <div class="p-2 m-2" v-if="active === 'options'">
@@ -75,44 +106,6 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "AppConfigModal",
-  computed: {
-    version() {
-      return this.$store.state.version
-    },
-    lang() {
-      return this.$root.$i18n.locale
-    },
-    loglevel() {
-      return this.$store.state.options.loglevel
-    }
-  },
-  data: function() {
-    return {
-      active: 'options'
-    }
-  },
-  methods: {
-    close() {
-      this.$emit('close')
-    },
-    changeLanguage(event) {
-      this.$store.dispatch('setOptions', {
-        locale: event.target.value
-      }).then(({locale}) => {
-        this.$root.$i18n.locale = locale
-      })
-    },
-    changeLogLevel(event) {
-      this.$store.dispatch('setOptions', {
-        loglevel: event.target.value
-      })
-    }
-  }
-}
-</script>
 
 <style scoped>
 

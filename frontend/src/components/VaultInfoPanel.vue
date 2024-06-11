@@ -1,3 +1,21 @@
+<script setup lang="ts">
+import VaultUnlockModal from "./VaultUnlockModal.vue";
+import VaultOptionsModal from "./VaultOptionsModal.vue";
+import { computed, ref } from 'vue';
+import { useGlobalStore } from '@/stores/global';
+
+const showUnlock = ref(false);
+const showVaultOptionsModal = ref(false);
+
+const store = useGlobalStore();
+
+const selectedVault = computed(() => store.selectedVault)
+const unlockVault = (payload: {vaultId: string, password: string}) => {
+  store.unlockVault(payload).then(() => {
+    showUnlock.value = false
+  })
+}
+</script>
 <template>
   <div class="column col-8 info-panel">
     <div class="empty" v-if="!selectedVault">
@@ -20,12 +38,12 @@
       </div><!--vault info end-->
       <div class="vault-operations text-center" v-if="selectedVault.state === 'unlocked'">
         <button class="btn btn-primary btn-lg"
-                @click="revealMountPointForVault({vaultId: selectedVault.id})">
+                @click="store.revealMountPointForVault({vaultId: selectedVault.id})">
           <i class="ri-folder-open-fill"></i> {{ $t('panel.buttons.reveal') }}
         </button>
         <div class="text-center mt-2">
           <button class="btn btn-sm"
-                  @click="lockVault({vaultId: selectedVault.id})">
+                  @click="store.lockVault({vaultId: selectedVault.id})">
             <i class="ri-key-2-fill"></i> {{ $t('panel.buttons.lock') }}
           </button>
         </div>
@@ -51,34 +69,6 @@
   </div>
 </template>
 
-<script>
-import {mapActions, mapGetters} from 'vuex'
-import VaultUnlockModal from "@/components/VaultUnlockModal";
-import VaultOptionsModal from "@/components/VaultOptionsModal";
-
-export default {
-  name: "VaultInfoPanel",
-  components: {VaultOptionsModal, VaultUnlockModal},
-  data: function () {
-    return {
-      showUnlock: false,
-      showVaultOptionsModal: false
-    }
-  },
-  computed: {
-    ...mapGetters(['selectedVault'])
-  },
-  methods: {
-    ...mapActions(['revealMountPointForVault', 'lockVault']),
-    unlockVault(payload) {
-      this.$store.dispatch('unlockVault', payload).then(() => {
-        this.showUnlock = false
-        this.$wait.end('unlocking')
-      })
-    }
-  }
-}
-</script>
 
 <style scoped>
 .info-panel {
