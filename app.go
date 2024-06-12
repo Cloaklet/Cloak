@@ -8,7 +8,7 @@ import (
 	"Cloak/models"
 	"Cloak/server"
 	"database/sql"
-	"github.com/getlantern/systray"
+	"fyne.io/systray"
 	"github.com/pkg/browser"
 	"path/filepath"
 	"strings"

@@ -2,7 +2,7 @@ package main
 
 import (
 	"Cloak/extension"
-	"github.com/getlantern/systray"
+	"fyne.io/systray"
 	"github.com/rs/zerolog"
 )
 
