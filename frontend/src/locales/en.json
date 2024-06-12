@@ -48,7 +48,7 @@
         "label": "Choose the {filename} file of your existing vault",
         "title": "Select the gocryptfs.conf file inside target vault"
       },
-      "title": "@:(list.buttons.add)",
+      "title": "@:list.buttons.add",
       "vault_conf_file": "Vault Config File"
     },
     "buttons": {
@@ -124,11 +124,11 @@
       "autoreveal": {
         "do_nothing": "Do nothing",
         "label": "After successful unlock",
-        "reveal_drive": "@:(panel.buttons.reveal)"
+        "reveal_drive": "@:panel.buttons.reveal"
       },
       "buttons": {
         "change_password": "Change Password",
-        "recover_password": "@:(vault.options.recover_password.title)",
+        "recover_password": "@:vault.options.recover_password.title",
         "reveal_masterkey": "Show Master Key"
       },
       "change_password": {
@@ -138,8 +138,8 @@
           "password": "Enter current password for \"{vaultname}\"",
           "repeat": "Confirm the new password"
         },
-        "notmatch": "@:(list.create.password.repeat.notmatch)",
-        "title": "@:(vault.options.buttons.change_password)"
+        "notmatch": "@:list.create.password.repeat.notmatch",
+        "title": "@:vault.options.buttons.change_password"
       },
       "masterkey": {
         "description": "If you ever forget your password, the following master key is the only way to restore access to \"{vaultname}\"",

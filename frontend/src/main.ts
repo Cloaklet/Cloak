@@ -16,6 +16,7 @@ const loadLocaleMessages = () => {
 
 const i18n = createI18n({
   legacy: false,
+  allowComposition: true,
   locale: 'en',
   fallbackLocale: 'en',
   messages: loadLocaleMessages(),

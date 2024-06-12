@@ -19,8 +19,8 @@ const requestRevealMasterkey = () => {
   store.revealVaultMasterkey({
     vaultId: selectedVault.value.id,
     password: password.value,
-  }).then((masterkey) => {
-    masterkey.value = masterkey
+  }).then((v: string) => {
+    masterkey.value = v
   })
 }
 const onCopySucceeded = () => {

@@ -28,7 +28,7 @@ watch(errCode, (newValue, oldValue) => {
     timeoutId.value = null;
   }
   if (newValue === 0) {
-    timeoutId.value = setTimeout(() => {
+    timeoutId.value = window.setTimeout(() => {
       store.closeAlert();
       timeoutId.value = null;
     }, 2000);

@@ -48,7 +48,7 @@
         "label": "选择加密库中的 {filename} 文件",
         "title": "选择加密库中的 gocryptfs.conf 文件"
       },
-      "title": "@:(list.buttons.add)",
+      "title": "@:list.buttons.add",
       "vault_conf_file": "加密库的配置文件"
     },
     "buttons": {
@@ -73,7 +73,7 @@
       }
     },
     "novault": {
-      "subtitle": "点击「@:(list.buttons.add)」来创建新加密库或添加已有的加密库",
+      "subtitle": "点击「@:list.buttons.add」来创建新加密库或添加已有的加密库",
       "title": "没有加密库"
     }
   },
@@ -124,11 +124,11 @@
       "autoreveal": {
         "do_nothing": "什么都不做",
         "label": "解密成功后",
-        "reveal_drive": "@:(panel.buttons.reveal)"
+        "reveal_drive": "@:panel.buttons.reveal"
       },
       "buttons": {
         "change_password": "修改密码",
-        "recover_password": "@:(vault.options.recover_password.title)",
+        "recover_password": "@:vault.options.recover_password.title",
         "reveal_masterkey": "显示 Master Key"
       },
       "change_password": {
@@ -138,8 +138,8 @@
           "password": "输入「{vaultname}」当前的密码",
           "repeat": "再次输入新的密码"
         },
-        "notmatch": "@:(list.create.password.repeat.notmatch)",
-        "title": "@:(vault.options.buttons.change_password)"
+        "notmatch": "@:list.create.password.repeat.notmatch",
+        "title": "@:vault.options.buttons.change_password"
       },
       "masterkey": {
         "description": "如果您忘记了密码，此密钥将是您访问「{vaultname}」的唯一途径",

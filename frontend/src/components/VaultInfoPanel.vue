@@ -3,10 +3,12 @@ import VaultUnlockModal from "./VaultUnlockModal.vue";
 import VaultOptionsModal from "./VaultOptionsModal.vue";
 import { computed, ref } from 'vue';
 import { useGlobalStore } from '@/stores/global';
+import { useI18n } from "vue-i18n";
 
 const showUnlock = ref(false);
 const showVaultOptionsModal = ref(false);
 
+const {t} = useI18n();
 const store = useGlobalStore();
 
 const selectedVault = computed(() => store.selectedVault)

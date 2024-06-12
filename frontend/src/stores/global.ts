@@ -41,6 +41,9 @@ const requestApi = ({method, api, data}: {
 }) => {
     return fetch(`${API}/api/${api}`, {
         method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: data ? JSON.stringify(data) : undefined,
     }).then(resp => {
       return resp.json().then(data => {

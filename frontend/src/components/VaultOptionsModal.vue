@@ -4,6 +4,7 @@ import FileSelectionModal from "./FileSelectionModal.vue";
 import VaultMasterkeyModal from "./VaultMasterkeyModal.vue";
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useGlobalStore } from '@/stores/global';
+import { useI18n } from "vue-i18n";
 
 const enum tab  {
   general = 'general',
@@ -11,6 +12,7 @@ const enum tab  {
   password = 'password',
 }
 
+const {t} = useI18n();
 const store = useGlobalStore();
 
 const active = ref<tab>(tab.general);
