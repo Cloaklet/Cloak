@@ -1,9 +1,8 @@
-//+build linux
+//go:build linux
 
 package extension
 
 import (
-	"github.com/adrg/xdg"
 	"os/exec"
 	"path/filepath"
 )
@@ -28,17 +27,4 @@ func isFuseAvailable() bool {
 // The directory might not exist yet.
 func locateLogDirectory() string {
 	return filepath.Join(locateAppDataDirectory(), "logs")
-}
-
-// locateAppDataDirectory returns path of where we should store our data for current user.
-// The directory might not exist yet.
-func locateAppDataDirectory() string {
-	return filepath.Join(xdg.DataHome, "Cloak")
-
-}
-
-// locateConfigDirectory returns directory path in which we should store our configuration file.
-// The directory might not exist yet.
-func locateConfigDirectory() string {
-	return filepath.Join(xdg.ConfigHome, "Cloak")
 }

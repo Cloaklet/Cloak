@@ -1,4 +1,5 @@
-//+build darwin
+//go:build darwin
+// +build darwin
 
 package extension
 
@@ -37,16 +38,6 @@ func isFuseAvailable() bool {
 		return !info.IsDir()
 	}
 	return false
-}
-
-// locateAppDataDirectory returns path of the "Application Support" of current user.
-func locateAppDataDirectory() string {
-	return filepath.Join(C.GoString(C.GetAppDataDirectory()), "Cloak")
-}
-
-// locateConfigDirectory returns path of the "Application Support" of current user.
-func locateConfigDirectory() string {
-	return locateAppDataDirectory()
 }
 
 // locateLogDirectory returns the path in which log files should be stored.

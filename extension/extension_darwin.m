@@ -8,12 +8,3 @@ void OpenPath(const char *path){
         [[NSWorkspace sharedWorkspace] openURL: folderURL];
     }
 }
-
-const char* GetAppDataDirectory() {
-    @autoreleasepool {
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES);
-        NSString *applicationSupportDirectory = [paths firstObject];
-        const char *appDataDir = [applicationSupportDirectory UTF8String];
-        return appDataDir;
-    }
-}

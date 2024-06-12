@@ -2,4 +2,3 @@
 #include <Foundation/Foundation.h>
 
 void OpenPath(const char *);
-const char* GetAppDataDirectory();

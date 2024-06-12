@@ -2,6 +2,7 @@ package extension
 
 import (
 	"fmt"
+	"github.com/adrg/xdg"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"os"
@@ -132,13 +133,13 @@ func IsFuseAvailable() bool {
 // GetAppDataDirectory locates a directory in which we can store our data.
 // The directory might not exist yet.
 func GetAppDataDirectory() string {
-	return locateAppDataDirectory()
+	return filepath.Join(xdg.DataHome, "Cloak")
 }
 
 // GetConfigDirectory locates a directory in which we can store our configuration file.
 // The directory might not exist yet.
 func GetConfigDirectory() string {
-	return locateConfigDirectory()
+	return filepath.Join(xdg.ConfigHome, "Cloak")
 }
 
 // EnsureDirectoryExists makes sure given directory path exists.
