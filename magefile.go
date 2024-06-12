@@ -1,3 +1,4 @@
+//go:build mage
 // +build mage
 
 package main
@@ -340,8 +341,8 @@ func linuxArch(goArch string) string {
 
 // Download static build binary of gocryptfs
 func DownloadExternalTools(c context.Context) error {
-	cloakResourceVersion := "0.0.3"
-	gocryptfsVersion := "v2.2.1-6-gd530fbd"
+	cloakResourceVersion := "0.0.4"
+	gocryptfsVersion := "v2.4.0-33-gf06f27e"
 	goOs := c.Value(osKey).(string)
 	goArch := c.Value(archKey).(string)
 
