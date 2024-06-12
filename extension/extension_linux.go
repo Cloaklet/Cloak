@@ -3,6 +3,7 @@
 package extension
 
 import (
+	"github.com/adrg/xdg"
 	"os/exec"
 	"path/filepath"
 )
@@ -26,5 +27,5 @@ func isFuseAvailable() bool {
 // locateLogDirectory returns the path in which log files should be stored.
 // The directory might not exist yet.
 func locateLogDirectory() string {
-	return filepath.Join(locateAppDataDirectory(), "logs")
+	return filepath.Join(xdg.DataHome, "Cloak", "logs")
 }
