@@ -52,9 +52,9 @@ onMounted(() => nextTick(() => passwordInput.value.focus()))
       <div class="modal-body">
         <div class="content">
           <div class="form-group" v-if="!masterkey">
-            <i18n tag="label" for="vault-password" class="form-label" path="panel.unlock.password.label">
+            <i18n-t tag="label" for="vault-password" class="form-label" keypath="panel.unlock.password.label">
               <template #vaultname>{{ selectedVault?.name }}</template>
-            </i18n>
+            </i18n-t>
             <input type="password"
                    class="form-input"
                    :disabled="false"
@@ -64,9 +64,9 @@ onMounted(() => nextTick(() => passwordInput.value.focus()))
                    @keydown.enter="requestRevealMasterkey">
           </div>
           <div v-else>
-            <i18n tag="p" class="form-group" path="vault.options.masterkey.description">
+            <i18n-t tag="p" class="form-group" keypath="vault.options.masterkey.description">
               <template #vaultname>{{ selectedVault?.name }}</template>
-            </i18n>
+            </i18n-t>
             <div class="form-group input-group">
               <input type="text" class="form-input" readonly v-model="masterkey">
               <button class="btn input-group-btn float-right"

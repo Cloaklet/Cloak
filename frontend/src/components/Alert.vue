@@ -34,6 +34,7 @@ watch(errCode, (newValue, oldValue) => {
     }, 2000);
   }
 })
+
 </script>
 
 <template>
@@ -42,9 +43,9 @@ watch(errCode, (newValue, oldValue) => {
        v-show="hasAlert">
     <button class="btn btn-clear float-right" v-if="isError" @click="closeAlert"></button>
     <p>{{ translatedErrMsg }}
-      <i18n tag="span" class="pl-1" v-if="isError" path="alert.errcode">
+      <i18n-t tag="span" class="pl-1" v-if="isError" keypath="alert.errcode">
         <template #code>{{ errCode }}</template>
-      </i18n>
+      </i18n-t>
     </p>
   </div>
 </template>

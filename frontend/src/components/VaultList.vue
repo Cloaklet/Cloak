@@ -33,13 +33,13 @@ onMounted(() => {
 
 <template>
   <div class="column col-4 p-relative">
-    <div class="menu p-0 vault-list">
+    <div class="menu p-0 vault-list" @click="store.unselectVault()">
       <div class="empty" v-if="!vaultsCount">
         <p class="empty-title h5" v-t="'list.novault.title'"></p>
         <p class="empty-subtitle" v-t="'list.novault.subtitle'"></p>
       </div>
       <div class="menu-item mt-0" v-for="vault in store.vaults" :key="vault.id">
-        <a :class="{ active: vault.selected }" @click="store.selectVault({vaultId: vault.id})">
+        <a :class="{ active: vault.selected }" @click.stop="store.selectVault({vaultId: vault.id})">
           <div class="tile tile-centered">
             <div class="tile-icon">
               <i class="ri-lock-unlock-fill ri-lg" v-if="vault.state === 'unlocked'"></i>
@@ -100,5 +100,8 @@ onMounted(() => {
 }
 .vault-list-buttons .btn:last-child {
   border-right: none;
+}
+.menu {
+  min-width: unset;
 }
 </style>

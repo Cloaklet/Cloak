@@ -166,7 +166,7 @@ func (a *App) Start() {
 			case <-quitMenu.ClickedCh:
 				systray.Quit()
 			case <-openMenu.ClickedCh:
-				browser.OpenURL("http://127.0.0.1:9763")
+				browser.OpenURL(a.apiServer.GetAccessUrl())
 			}
 		}
 	}()

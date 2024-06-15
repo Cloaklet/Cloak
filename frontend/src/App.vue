@@ -9,7 +9,7 @@ import VaultInfoPanel from "./components/VaultInfoPanel.vue"
 </script>
 <template>
   <transition appear name="fade">
-    <div id="app" class="container hero">
+    <div id="cloak" class="container hero">
       <div class="columns col-gapless">
         <div class="column col-mx-auto card"><!--Limit width-->
           <AppHeader/>
@@ -26,10 +26,11 @@ import VaultInfoPanel from "./components/VaultInfoPanel.vue"
 
 
 <style>
-#app {
+#cloak {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   border-radius: 0;
+  width: 650px;
 }
 .card {
   box-shadow: 0 .25rem 1rem rgba(48,55,66,.15);

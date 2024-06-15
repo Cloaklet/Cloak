@@ -39,10 +39,12 @@ const requestApi = ({method, api, data}: {
   api: string,
   data?: any, // TODO
 }) => {
+  const store = useGlobalStore()
     return fetch(`${API}/api/${api}`, {
         method: method,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': store.apiToken ? `Bearer ${store.apiToken}` : '',
         },
         body: data ? JSON.stringify(data) : undefined,
     }).then(resp => {
@@ -63,14 +65,27 @@ export const useGlobalStore = defineStore('global', {
             msg: '',
         },
         version: {},
-        options: {}
+        options: {},
+        _apiToken: '',
     } as {
       vaults: vault[],
       error: error,
       version: appVersion,
       options: appOptions,
+      _apiToken: string,
     }),
     getters: {
+      apiToken: state => {
+        if (!state._apiToken) {
+          const preds = window.location.hash.slice(1).split('&').filter(kv => kv.startsWith('token='))
+          if (preds.length > 0) {
+            state._apiToken = preds[0].split('=')[1]
+            window.location.hash = '';
+            return state._apiToken
+          }
+        }
+        return state._apiToken
+      },
         selectedVault: state =>  {
             for (let v of state.vaults) {
                 if (v.selected) {
@@ -87,6 +102,13 @@ export const useGlobalStore = defineStore('global', {
         }
     },
     actions: {
+      unselectVault() {
+        for (let v of this.vaults) {
+          if (v.selected) {
+            v.selected = false
+          }
+        }
+      },
       selectVault({vaultId}:{vaultId: string}) {
         for (let v of this.vaults) {
           if (v.id === vaultId) {
@@ -170,11 +192,20 @@ export const useGlobalStore = defineStore('global', {
             this.error = {code: -1, msg: e.message}
           })
         },
+        revealVault({vaultId}:{vaultId: string}) {
+          requestApi({
+            method: 'post',
+            api: `vault/${vaultId}`,
+            data: {op: 'reveal_vault'},
+          }).catch(e => {
+            this.error = {code: -1, msg: e.message}
+          })
+        },
         revealMountPointForVault({vaultId}:{vaultId: string}) {
           requestApi({
             method: 'post',
             api: `vault/${vaultId}`,
-            data: {op: 'reveal'},
+            data: {op: 'reveal_mountpoint'},
           }).catch(e => {
             this.error = {code: -1, msg: e.message}
           })
@@ -220,7 +251,9 @@ export const useGlobalStore = defineStore('global', {
           readonly?: boolean,
           mountpoint?: string,
         }) { // payload={vaultId,autoreveal,readonly,mountpoint}
-          if (!payload.autoreveal && !payload.readonly && !payload.mountpoint) {
+          if (typeof payload.autoreveal === 'undefined' &&
+            typeof payload.readonly === 'undefined' &&
+            typeof payload.mountpoint === 'undefined') {
             return
           }
           return requestApi({
@@ -231,8 +264,8 @@ export const useGlobalStore = defineStore('global', {
             const vault: vault = data.item
             for (let v of this.vaults) {
               if (v.id === payload.vaultId) {
-                v.name = vault.mountpoint.split('/').pop()!
                 v.path = vault.path
+                v.name = vault.path.split('/').pop()!
                 v.autoreveal = vault.autoreveal
                 v.readonly = vault.readonly
                 v.mountpoint = vault.mountpoint
@@ -288,7 +321,7 @@ export const useGlobalStore = defineStore('global', {
             api: 'subpaths',
             data: {pwd: path},
           }).then(data => {
-            return data.items
+            return data
           }).catch(e => {
             this.error = {code: -1, msg: e.message}
           })
@@ -297,7 +330,7 @@ export const useGlobalStore = defineStore('global', {
           locale?: string,
           loglevel?: string,
         }) {
-          if (!payload.locale && !payload.loglevel) {
+          if (typeof payload.locale === 'undefined' && typeof payload.loglevel === 'undefined') {
             return
           }
             const data: any = {}
@@ -307,12 +340,16 @@ export const useGlobalStore = defineStore('global', {
             if (payload.loglevel) {
                 data.loglevel = payload.loglevel
             }
-            requestApi({
+            return requestApi({
                 method: 'post',
                 api: 'options',
                 data: data
             }).then(() => {
-                this.options = {...data}
+                this.options = {
+                  ... this.options,
+                  ...data,
+                }
+                return this.options
             })
         },
         closeAlert() {

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useGlobalStore } from '@/stores/global';
 import { computed, onMounted, ref, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 
+const {t} = useI18n();
 const store = useGlobalStore();
 const password = ref('');
 const passwordInput = ref();
@@ -30,14 +32,15 @@ onMounted(() => nextTick(() => passwordInput.value.focus()))
       <div class="modal-body">
         <div class="content">
           <div class="form-group">
-            <i18n tag="label" for="vault-password" class="form-label" path="panel.unlock.password.label">
+            <i18n-t tag="label" for="vault-password" class="form-label" keypath="panel.unlock.password.label">
               <template #vaultname>{{ selectedVault?.name }}</template>
-            </i18n>
+            </i18n-t>
             <input type="password"
                    class="form-input"
                    id="vault-password"
                    ref="passwordInput"
                    v-model="password"
+                   :placeholder="$t('vault.options.password')"
                    @keydown.enter="requestUnlockVault">
           </div>
         </div>

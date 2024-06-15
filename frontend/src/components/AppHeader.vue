@@ -22,8 +22,14 @@ const showConfigModal = ref(false);
 <style scoped>
 header {
   padding: .7rem;
+  user-select: none;
 }
 i {
   vertical-align: middle;
+}
+a.navbar-brand:hover {
+  color: unset !important;
+  background-color: unset;
+  user-select: none;
 }
 </style>

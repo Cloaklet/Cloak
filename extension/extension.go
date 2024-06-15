@@ -109,6 +109,12 @@ func LocateBinary(executable string) (string, error) {
 		self string
 		err  error
 	)
+	var cwd string
+	if cwd, err = os.Getwd(); err == nil {
+		if _, err = os.Stat(filepath.Join(cwd, executable)); err == nil {
+			return filepath.Join(cwd, executable), nil
+		}
+	}
 	if self, err = os.Executable(); err != nil {
 		return "", err
 	}

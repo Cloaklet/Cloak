@@ -14,7 +14,9 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@tanstack/vue-query": "^5.45.0",
     "@vianetz/spectre.css": "^2.0.0",
+    "@vueuse/core": "^10.11.0",
     "pinia": "^2.1.7",
     "remixicon": "^4.2.0",
     "vue": "^3.4.21",

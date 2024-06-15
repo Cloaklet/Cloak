@@ -7,9 +7,10 @@ import (
 	"Cloak/version"
 	"context"
 	"database/sql"
+	"fmt"
+	"github.com/labstack/gommon/random"
 	"io/fs"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -38,7 +39,8 @@ func init() {
 // - Maintains the vault database;
 type ApiServer struct {
 	VaultManager
-	echo *echo.Echo // the actual HTTP server
+	echo  *echo.Echo // the actual HTTP server
+	token string
 }
 
 // NewApiServer creates a new ApiServer instance
@@ -54,6 +56,8 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool, configCh chan map[st
 			mountPoints:   make(map[int64]string),
 			configCh:      configCh,
 		},
+		// Generate a random token on startup, for API access
+		token: random.String(64),
 	}
 
 	// Detect external runtime dependencies
@@ -131,6 +135,15 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool, configCh chan map[st
 	}
 
 	apis := server.echo.Group("/api", server.CheckRuntimeDeps)
+	apis.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Check token
+			if c.Request().Header.Get("Authorization") != fmt.Sprintf("Bearer %s", server.token) {
+				return ErrUnauthorized
+			}
+			return next(c)
+		}
+	})
 	{
 		apis.GET("/vaults", server.ListVaults)
 		apis.DELETE("/vault/:id", server.RemoveVault)
@@ -149,9 +162,11 @@ func NewApiServer(repo *models.VaultRepo, releaseMode bool, configCh chan map[st
 		apis.POST("/options", server.SetOptions)
 	}
 
-	// We use `rand` to generate random mountpoint name, so be sure to seed it upon start up
-	rand.Seed(time.Now().UTC().UnixNano())
 	return &server
+}
+
+func (s *ApiServer) GetAccessUrl() string {
+	return fmt.Sprintf("http://127.0.0.1:9763/#token=%s", s.token)
 }
 
 // Start starts the server
@@ -258,7 +273,7 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 		// so no need to cleaning `s.processes` and `s.mountPoints` here.
 		// Respond
 		return ErrOk.WrapState("locked")
-	case "reveal":
+	case "reveal_mountpoint":
 		var mountPoint string
 		var ok bool
 		// Check current state
@@ -273,6 +288,17 @@ func (s *ApiServer) OperateOnVault(c echo.Context) error {
 
 		extension.OpenPath(mountPoint)
 		return ErrOk
+	case "reveal_vault":
+		if vault, err := s.repo.Get(vaultId, nil); err == nil {
+			if _, err := os.Stat(vault.Path); err != nil {
+				return ErrPathNotExist
+			} else {
+				extension.OpenPath(vault.Path)
+				return ErrOk
+			}
+		} else {
+			return err
+		}
 	default:
 		return ErrUnsupportedOperation
 	}

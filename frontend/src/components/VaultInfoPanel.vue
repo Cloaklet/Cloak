@@ -32,7 +32,10 @@ const unlockVault = (payload: {vaultId: string, password: string}) => {
         </div>
         <div class="tile-content p-relative">
           <div class="tile-title h5">{{ selectedVault.name }}</div>
-          <small class="tile-subtitle text-gray">{{ selectedVault.path }}</small>
+          <small class="tile-subtitle text-gray" @click.stop="store.revealVault({vaultId: selectedVault.id})">
+            {{ selectedVault.path }}
+            <i class="ri-eye-fill vault-reveal-icon ml-1"/>
+          </small>
           <span class="chip text-uppercase text-bold text-light p-absolute"
                 :class="{ 'bg-primary': selectedVault.state === 'unlocked' }"
                 v-t="selectedVault.state"></span>
@@ -56,7 +59,7 @@ const unlockVault = (payload: {vaultId: string, password: string}) => {
           <i class="ri-key-2-fill"></i> {{ $t('panel.buttons.unlock') }}
         </button>
         <div class="text-center mt-2">
-          <button class="btn btn-link btn-sm text-dark"
+          <button class="btn btn-sm text-dark"
                   @click="showVaultOptionsModal = true">
             <i class="ri-settings-3-fill"></i> {{ $t('panel.buttons.vault_options') }}
           </button>
@@ -86,7 +89,8 @@ const unlockVault = (payload: {vaultId: string, password: string}) => {
   background-color: #8c8c8c;
   top: 0;
   right: 0;
-  font-size: .6em;
+  font-size: .7em;
+  user-select: none;
 }
 .vault-info .s-circle {
   padding: .4rem;
@@ -94,9 +98,21 @@ const unlockVault = (payload: {vaultId: string, password: string}) => {
   height: 40px;
 }
 .vault-info [class^=ri-] {
-  vertical-align: sub;
+  vertical-align: baseline;
 }
 .vault-operations {
   margin-top: 3rem;
+}
+.vault-info .tile-title {
+  user-select: none;
+}
+.vault-info .tile-subtitle {
+  cursor: pointer;
+}
+.vault-info .tile-subtitle .vault-reveal-icon {
+  display: none;
+}
+.vault-info .tile-subtitle:hover .vault-reveal-icon {
+  display: inline-block;
 }
 </style>

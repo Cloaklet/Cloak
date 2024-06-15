@@ -128,10 +128,19 @@ onMounted(() => {
   min-height: 100%;
   display: grid; /* any better idea on how to stretch file list height? */
 }
-.modal-body .content .menu, .menu .empty {
+.modal-body .content .menu, .menu{
   height: 100%;
+}
+.empty {
+  height: 90%;
+  flex-flow: column;
+  display: flex;
+  justify-content: center;
 }
 .current-path {
   max-width: 75%;
+}
+.menu-item {
+  user-select: none;
 }
 </style>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { i18n } from '@/locale';
 import { useGlobalStore } from '@/stores/global';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -19,9 +20,9 @@ const active = ref<tab>(tab.options);
 const changeLanguage = (event: Event) => {
   store.setOptions({
     locale: (event.target as HTMLSelectElement).value
+  })?.then(options => {
+    i18n.global.locale.value = options.locale as 'en'|'zh-Hans'
   })
-  // FIXME frontend i18n
-  locale.value = store.options.locale!
 }
 const changeLogLevel = (event: Event) => {
   store.setOptions({
@@ -108,5 +109,7 @@ const changeLogLevel = (event: Event) => {
 
 
 <style scoped>
-
+* {
+  user-select: none;
+}
 </style>

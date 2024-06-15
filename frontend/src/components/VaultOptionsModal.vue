@@ -38,7 +38,6 @@ const updateVaultOptions = (payload: {autoreveal?: boolean, readonly?: boolean, 
 
 watch(useCustomMountpoint, (newValue, oldValue) => {
   if (!selectedVault.value) {return}
-  console.log('WATCH:', oldValue, newValue)
   if (oldValue !== null) {
     if (newValue) {
       showMountpointSelectionModal.value = newValue
@@ -50,7 +49,7 @@ watch(useCustomMountpoint, (newValue, oldValue) => {
   }
 })
 const setVaultMountpoint = (path: string) => {
-  // updateVaultOptions({mountpoint: path})
+  updateVaultOptions({mountpoint: path})
 }
 const mountpointSelectionClosed = () => {
   showMountpointSelectionModal.value = false
@@ -182,6 +181,9 @@ onMounted(() => {
 
 
 <style scoped>
+* {
+  user-select: none;
+}
 .custom-mountpoint {
   padding-left: 2rem;
 }

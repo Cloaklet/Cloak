@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import PasswordStrengthMeter from "./PasswordStrengthMeter.vue";
-import { computed, onMounted, ref , nextTick} from 'vue';
+import { computed, ref , watch} from 'vue';
 import { useGlobalStore } from '@/stores/global';
 import { useI18n } from 'vue-i18n';
 
@@ -61,13 +61,17 @@ const showPasswordFeedback = ({warning}: {warning: string}) => {
   }
 }
 
-onMounted(() => nextTick(() => {
-  if (props.using === 'password') {
-    passwordInput.value.focus()
-  } else if (props.using === 'masterkey') {
-    masterkeyInput.value.focus()
+
+watch(passwordInput, (newV, oldV) => {
+  if (props.using === 'password' && typeof oldV === 'undefined' && newV) {
+    newV.focus()
   }
-}))
+})
+watch (masterkeyInput, (newV, oldV) => {
+  if (props.using === 'masterkey' && typeof oldV === 'undefined' && newV) {
+    newV.focus()
+  }
+})
 
 </script>
 <template>
@@ -79,22 +83,22 @@ onMounted(() => nextTick(() => {
            aria-label="Close"
            @click="$emit('close')"></a>
         <div class="modal-title h5"
-             v-if="using === password"
+             v-if="using === 'password'"
              v-t="'vault.options.change_password.title'"></div>
         <div class="modal-title h5"
-             v-if="using === masterkey"
+             v-if="using === 'masterkey'"
              v-t="'vault.options.recover_password.title'"></div>
       </div>
       <div class="modal-body">
         <div class="content">
           <div class="form-group"
-               v-if="using === password">
-            <i18n tag="label"
+               v-if="using === 'password'">
+            <i18n-t tag="label"
                   class="form-label"
                   for="vault-chpw-oldpassword"
-                  path="vault.options.change_password.label.password">
+                  keypath="vault.options.change_password.label.password">
               <template #vaultname>{{ selectedVault?.name }}</template>
-            </i18n>
+            </i18n-t>
             <input class="form-input"
                    type="password"
                    id="vault-chpw-oldpassword"
@@ -102,14 +106,14 @@ onMounted(() => nextTick(() => {
                    v-model="password">
           </div>
           <div class="form-group"
-               v-if="using === masterkey"
+               v-if="using === 'masterkey'"
                :class="{ 'has-error': !masterkeyValid }">
-            <i18n tag="label"
+            <i18n-t tag="label"
                   class="form-label"
                   for="vault-recoverpw-masterkey"
-                  path="vault.options.recover_password.label.masterkey">
+                  keypath="vault.options.recover_password.label.masterkey">
               <template #vaultname>{{ selectedVault?.name }}</template>
-            </i18n>
+            </i18n-t>
             <input class="form-input"
                    type="text"
                    id="vault-recoverpw-masterkey"

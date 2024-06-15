@@ -77,4 +77,5 @@ var (
 	ErrVaultUpdateConfFailed      = &ApiError{Code: 18, Message: "Gocryptfs could not write the updated gocryptfs.conf"}
 	ErrMissingGocryptfsXrayBinary = &ApiError{Code: 19, Message: "Cannot locate gocryptfs-xray binary"}
 	ErrMountpointMkdirFailed      = &ApiError{Code: 20, Message: "Failed to create mountpoint directory"}
+	ErrUnauthorized               = &ApiError{Code: 21, Message: "Unauthorized"}
 )
