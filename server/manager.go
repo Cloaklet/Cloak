@@ -364,6 +364,13 @@ func (m *VaultManager) GocryptfsUnlockVault(vaultId int64, password string) erro
 	}
 	// Start a gocryptfs process to unlock this vault
 	args := []string{"-fg"}
+	if runtime.GOOS == "darwin" {
+		args = append(
+			args,
+			"-ko",
+			fmt.Sprintf("volname=%s,local,auto_xattr,noappledouble", filepath.Base(vault.Path)),
+		)
+	}
 	// Readonly mode
 	if vault.ReadOnly {
 		args = append(args, "-ro")
